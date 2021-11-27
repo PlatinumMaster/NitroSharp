@@ -2,34 +2,27 @@
 
 namespace NitroSharp.Formats.ROM
 {
-    public class NitroByteWrapper
+    public class ARMBinary
     {
-        protected byte[] _Data;
+        private byte[] _Data;
 
-        public NitroByteWrapper(uint Offset, uint Size, BinaryReader Binary)
+        public ARMBinary(uint EntryAddress, uint Offset, uint Size, uint RAMAddress)
         {
+            this.EntryAddress = EntryAddress;
             this.Offset = Offset;
             this.Size = Size;
-            GetFileFromROMStream(Binary);
+            this.RAMAddress = RAMAddress;
         }
 
-        protected NitroByteWrapper()
-        {
-        }
-
+        public uint EntryAddress { get; set; }
         public uint Offset { get; set; }
         public uint Size { get; set; }
+        public uint RAMAddress { get; set; }
 
         public byte[] Data
         {
             get => _Data;
             set => UpdateBinary(value);
-        }
-
-        protected void UpdateBinary(byte[] NewData)
-        {
-            _Data = NewData;
-            Size = (uint) NewData.Length;
         }
 
         public void GetFileFromROMStream(BinaryReader Binary)
@@ -38,6 +31,12 @@ namespace NitroSharp.Formats.ROM
             Binary.BaseStream.Position = Offset;
             Data = Binary.ReadBytes((int) Size);
             Binary.BaseStream.Position = OriginalPosition;
+        }
+
+        private void UpdateBinary(byte[] NewData)
+        {
+            _Data = NewData;
+            Size = (uint) NewData.Length;
         }
     }
 }

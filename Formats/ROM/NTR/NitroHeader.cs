@@ -1,20 +1,148 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using Nito.HashAlgorithms;
 
 namespace NitroSharp.Formats.ROM
 {
-    public class NitroHeader {
+    public class NitroHeader
+    {
+        public NitroHeader(BinaryReader Binary)
+        {
+            Binary.BaseStream.Position = 0x0;
+
+            Title = new string(Binary.ReadChars(12));
+            GameCode = new string(Binary.ReadChars(4));
+            MakerCode = new string(Binary.ReadChars(2));
+            UnitCode = Binary.ReadByte();
+            EncryptionSeed = Binary.ReadByte();
+            DeviceCapacity = Binary.ReadByte();
+            Reserved = Binary.ReadBytes(7);
+            TWLInternalFlags = Binary.ReadByte();
+            PermitsFlags = Binary.ReadByte();
+            ROMVersion = Binary.ReadByte();
+            InternalFlags = Binary.ReadByte();
+            ARM9Offset = Binary.ReadUInt32();
+            ARM9EntryAddress = Binary.ReadUInt32();
+            ARM9RAMAddress = Binary.ReadUInt32();
+            ARM9Size = Binary.ReadUInt32();
+            ARM7Offset = Binary.ReadUInt32();
+            ARM7EntryAddress = Binary.ReadUInt32();
+            ARM7RAMAddress = Binary.ReadUInt32();
+            ARM7Size = Binary.ReadUInt32();
+            FileNameTableOffset = Binary.ReadUInt32();
+            FileNameTableSize = Binary.ReadUInt32();
+            FileAllocationTableOffset = Binary.ReadUInt32();
+            FileAllocationTableSize = Binary.ReadUInt32();
+            ARM9OverlayTableOffset = Binary.ReadUInt32();
+            ARM9OverlayTableSize = Binary.ReadUInt32();
+            ARM7OverlayTableOffset = Binary.ReadUInt32();
+            ARM7OverlayTableSize = Binary.ReadUInt32();
+            FlagsRead = Binary.ReadUInt32();
+            FlagsInit = Binary.ReadUInt32();
+            BannerOffset = Binary.ReadUInt32();
+            SecureCRC16 = Binary.ReadUInt16();
+            ROMTimeout = Binary.ReadUInt16();
+            ARM9Autoload = Binary.ReadUInt32();
+            ARM7Autoload = Binary.ReadUInt32();
+            SecureAreaDisable = Binary.ReadUInt64();
+            ROMSize = Binary.ReadUInt32();
+            HeaderSize = Binary.ReadUInt32();
+            Reserved2 = Binary.ReadBytes(56);
+            Logo = Binary.ReadBytes(0x9C);
+            LogoCRC16 = Binary.ReadUInt16();
+            HeaderCRC16 = Binary.ReadUInt16();
+            DebugROMOffset = Binary.ReadUInt32();
+            DebugSize = Binary.ReadUInt32();
+            DebugRAMAddress = Binary.ReadUInt32();
+            Reserved3 = Binary.ReadUInt32();
+            Reserved4 = Binary.ReadBytes(0x10);
+
+            if (HeaderSize > 0x200 && (UnitCode & 2) > 0)
+            {
+                GlobalMBKSetting = new List<byte[]>();
+                ARM9MBKSetting = new List<uint>();
+                ARM7MBKSetting = new List<uint>();
+                mbk9_wramcnt_setting = new List<uint>();
+
+                // DSi-Enhanced Data
+                for (var i = 0; i < 5; i++)
+                    GlobalMBKSetting.Add(Binary.ReadBytes(0x4));
+                for (var i = 0; i < 3; i++)
+                    ARM9MBKSetting.Add(Binary.ReadUInt32());
+                for (var i = 0; i < 3; i++)
+                    ARM7MBKSetting.Add(Binary.ReadUInt32());
+
+                mbk9_wramcnt_setting.Add(Binary.ReadUInt32());
+
+                RegionFlags = Binary.ReadUInt32();
+                AccessControl = Binary.ReadUInt32();
+                SCFGExtMask = Binary.ReadUInt32();
+                AppFlags = Binary.ReadBytes(4);
+
+                ARM9iOffset = Binary.ReadUInt32();
+                ARM9iEntryAddress = Binary.ReadUInt32();
+                ARM9iRAMAddress = Binary.ReadUInt32();
+                ARM9iSize = Binary.ReadUInt32();
+
+                ARM7iOffset = Binary.ReadUInt32();
+                ARM7iEntryAddress = Binary.ReadUInt32();
+                ARM7iRAMAddress = Binary.ReadUInt32();
+                ARM7iSize = Binary.ReadUInt32();
+
+                DigestNTROffset = Binary.ReadUInt32();
+                DigestNTRSize = Binary.ReadUInt32();
+                DigestTWLOffset = Binary.ReadUInt32();
+                DigestTWLSize = Binary.ReadUInt32();
+
+                SectorHashtableOffset = Binary.ReadUInt32();
+                SectorHashtableSize = Binary.ReadUInt32();
+                BlockHashtableOffset = Binary.ReadUInt32();
+                BlockHashtableSize = Binary.ReadUInt32();
+
+                DigestSectorSize = Binary.ReadUInt32();
+                DigestBlockSectorCount = Binary.ReadUInt32();
+                BannerSize = Binary.ReadUInt32();
+                offset_0x20C = Binary.ReadUInt32();
+
+                TotalTWLROMSize = Binary.ReadUInt32();
+                offset_0x214 = Binary.ReadUInt32();
+                offset_0x218 = Binary.ReadUInt32();
+                offset_0x21C = Binary.ReadUInt32();
+
+                ModcryptOffset = Binary.ReadUInt32();
+                ModcryptSize = Binary.ReadUInt32();
+                Modcrypt2Offset = Binary.ReadUInt32();
+                Modcrypt2Size = Binary.ReadUInt32();
+
+                TitleID = Binary.ReadUInt64();
+                PublicSaveSize = Binary.ReadUInt32();
+                PrivateSaveSize = Binary.ReadUInt32();
+
+                Reserved5 = Binary.ReadBytes(0xB0);
+                AgeRatings = Binary.ReadBytes(0x10);
+                HMAC_ARM9 = Binary.ReadBytes(20);
+                HMAC_ARM7 = Binary.ReadBytes(20);
+                HMAC_DigestMaster = Binary.ReadBytes(20);
+                HMAC_TitleIcon = Binary.ReadBytes(20);
+                HMAC_ARM9i = Binary.ReadBytes(20);
+                HMAC_ARM7i = Binary.ReadBytes(20);
+                Reserved6 = Binary.ReadBytes(40);
+                HMAC_ARM9NoSecure = Binary.ReadBytes(20);
+                Reserved7 = Binary.ReadBytes(0xA4C);
+                DebugArguments = Binary.ReadBytes(0x180);
+                RSASignature = Binary.ReadBytes(0x80);
+            }
+        }
+
         public string Title { get; set; }
         public string GameCode { get; set; }
         public string MakerCode { get; set; }
         public byte UnitCode { get; set; }
         public byte EncryptionSeed { get; set; }
-        public byte DeviceCapacity { get; private set; }
-        public byte[] Reserved { get; private set; }
+        public byte DeviceCapacity { get; }
+        public byte[] Reserved { get; }
         public byte TWLInternalFlags { get; set; }
         public byte PermitsFlags { get; set; }
         public byte ROMVersion { get; set; }
@@ -110,137 +238,9 @@ namespace NitroSharp.Formats.ROM
         public byte[] DebugArguments { get; set; }
         public byte[] RSASignature { get; set; }
 
-        public NitroHeader(BinaryReader Binary)
-        {
-            Binary.BaseStream.Position = 0x0;
-
-            Title = new string(Binary.ReadChars(12));
-            GameCode = new string(Binary.ReadChars(4));
-            MakerCode = new string(Binary.ReadChars(2));
-            UnitCode = Binary.ReadByte();
-            EncryptionSeed = Binary.ReadByte();
-            DeviceCapacity = Binary.ReadByte();
-            Reserved = Binary.ReadBytes(7);
-            TWLInternalFlags = Binary.ReadByte();
-            PermitsFlags = Binary.ReadByte();
-            ROMVersion = Binary.ReadByte();
-            InternalFlags = Binary.ReadByte();
-            ARM9Offset = Binary.ReadUInt32();
-            ARM9EntryAddress = Binary.ReadUInt32();
-            ARM9RAMAddress = Binary.ReadUInt32();
-            ARM9Size = Binary.ReadUInt32();
-            ARM7Offset = Binary.ReadUInt32();
-            ARM7EntryAddress = Binary.ReadUInt32();
-            ARM7RAMAddress = Binary.ReadUInt32();
-            ARM7Size = Binary.ReadUInt32();
-            FileNameTableOffset = Binary.ReadUInt32();
-            FileNameTableSize = Binary.ReadUInt32();
-            FileAllocationTableOffset = Binary.ReadUInt32();
-            FileAllocationTableSize = Binary.ReadUInt32();
-            ARM9OverlayTableOffset = Binary.ReadUInt32();
-            ARM9OverlayTableSize = Binary.ReadUInt32();
-            ARM7OverlayTableOffset = Binary.ReadUInt32();
-            ARM7OverlayTableSize = Binary.ReadUInt32();
-            FlagsRead = Binary.ReadUInt32();
-            FlagsInit = Binary.ReadUInt32();
-            BannerOffset = Binary.ReadUInt32();
-            SecureCRC16 = Binary.ReadUInt16();
-            ROMTimeout = Binary.ReadUInt16();
-            ARM9Autoload = Binary.ReadUInt32();
-            ARM7Autoload = Binary.ReadUInt32();
-            SecureAreaDisable = Binary.ReadUInt64();
-            ROMSize = Binary.ReadUInt32();
-            HeaderSize = Binary.ReadUInt32();
-            Reserved2 = Binary.ReadBytes(56);
-            Logo = Binary.ReadBytes(0x9C);
-            LogoCRC16 = Binary.ReadUInt16();
-            HeaderCRC16 = Binary.ReadUInt16();
-            DebugROMOffset = Binary.ReadUInt32();
-            DebugSize = Binary.ReadUInt32();
-            DebugRAMAddress = Binary.ReadUInt32();
-            Reserved3 = Binary.ReadUInt32();
-            Reserved4 = Binary.ReadBytes(0x10);
-
-            if (HeaderSize > 0x200 && (UnitCode & 2) > 0)
-            {
-                GlobalMBKSetting = new List<byte[]>();
-                ARM9MBKSetting = new List<uint>();
-                ARM7MBKSetting = new List<uint>();
-                mbk9_wramcnt_setting = new List<uint>();
-
-                // DSi-Enhanced Data
-                for (int i = 0; i < 5; i++)
-                    GlobalMBKSetting.Add(Binary.ReadBytes(0x4));
-                for (int i = 0; i < 3; i++)
-                    ARM9MBKSetting.Add(Binary.ReadUInt32());
-                for (int i = 0; i < 3; i++)
-                    ARM7MBKSetting.Add(Binary.ReadUInt32());
-                
-                mbk9_wramcnt_setting.Add(Binary.ReadUInt32());
-
-                RegionFlags = Binary.ReadUInt32();
-                AccessControl = Binary.ReadUInt32();
-                SCFGExtMask = Binary.ReadUInt32();
-                AppFlags = Binary.ReadBytes(4);
-
-                ARM9iOffset = Binary.ReadUInt32();
-                ARM9iEntryAddress = Binary.ReadUInt32();
-                ARM9iRAMAddress = Binary.ReadUInt32();
-                ARM9iSize = Binary.ReadUInt32();
-
-                ARM7iOffset = Binary.ReadUInt32();
-                ARM7iEntryAddress = Binary.ReadUInt32();
-                ARM7iRAMAddress = Binary.ReadUInt32();
-                ARM7iSize = Binary.ReadUInt32();
-
-                DigestNTROffset = Binary.ReadUInt32();
-                DigestNTRSize = Binary.ReadUInt32();
-                DigestTWLOffset = Binary.ReadUInt32();
-                DigestTWLSize = Binary.ReadUInt32();
-
-                SectorHashtableOffset = Binary.ReadUInt32();
-                SectorHashtableSize = Binary.ReadUInt32();
-                BlockHashtableOffset = Binary.ReadUInt32();
-                BlockHashtableSize = Binary.ReadUInt32();
-
-                DigestSectorSize = Binary.ReadUInt32();
-                DigestBlockSectorCount = Binary.ReadUInt32();
-                BannerSize = Binary.ReadUInt32();
-                offset_0x20C = Binary.ReadUInt32();
-
-                TotalTWLROMSize = Binary.ReadUInt32();
-                offset_0x214 = Binary.ReadUInt32();
-                offset_0x218 = Binary.ReadUInt32();
-                offset_0x21C = Binary.ReadUInt32();
-
-                ModcryptOffset = Binary.ReadUInt32();
-                ModcryptSize = Binary.ReadUInt32();
-                Modcrypt2Offset = Binary.ReadUInt32();
-                Modcrypt2Size = Binary.ReadUInt32();
-
-                TitleID = Binary.ReadUInt64();
-                PublicSaveSize = Binary.ReadUInt32();
-                PrivateSaveSize = Binary.ReadUInt32();
-
-                Reserved5 = Binary.ReadBytes(0xB0);
-                AgeRatings = Binary.ReadBytes(0x10);
-                HMAC_ARM9 = Binary.ReadBytes(20);
-                HMAC_ARM7 = Binary.ReadBytes(20);
-                HMAC_DigestMaster = Binary.ReadBytes(20);
-                HMAC_TitleIcon = Binary.ReadBytes(20);
-                HMAC_ARM9i = Binary.ReadBytes(20);
-                HMAC_ARM7i = Binary.ReadBytes(20);
-                Reserved6 = Binary.ReadBytes(40);
-                HMAC_ARM9NoSecure = Binary.ReadBytes(20);
-                Reserved7 = Binary.ReadBytes(0xA4C);
-                DebugArguments = Binary.ReadBytes(0x180);
-                RSASignature = Binary.ReadBytes(0x80);
-            }
-        }
-
         public static void CalculateCRC(NitroHeader Header)
         {
-            MemoryStream Temporary = new MemoryStream(new byte[0x8000]);
+            var Temporary = new MemoryStream(new byte[0x8000]);
             Temporary.Write(Encoding.ASCII.GetBytes(Header.Title));
             Temporary.Write(Encoding.ASCII.GetBytes(Header.GameCode));
             Temporary.Write(Encoding.ASCII.GetBytes(Header.MakerCode));
@@ -285,12 +285,18 @@ namespace NitroSharp.Formats.ROM
             Temporary.Write(BitConverter.GetBytes(Header.DebugRAMAddress));
             Temporary.Write(BitConverter.GetBytes(Header.Reserved3));
             Temporary.Write(Header.Reserved4);
-            
+
 
             var Calculator = new CRC16();
-            Header.HeaderCRC16 = BitConverter.ToUInt16(Calculator.ComputeHash(new ArraySegment<byte>(Temporary.ToArray(), 0, 0x15E).Array));
-            Header.LogoCRC16 = BitConverter.ToUInt16(Calculator.ComputeHash(new ArraySegment<byte>(Temporary.ToArray(), 0xC0, 0x9C).Array));
-            Header.SecureCRC16 = BitConverter.ToUInt16(Calculator.ComputeHash(new ArraySegment<byte>(Temporary.ToArray(), (int)Header.ARM9Offset, (int)(0x8000 - 2 * Header.ARM9Offset)).Array));
+            Header.HeaderCRC16 =
+                BitConverter.ToUInt16(
+                    Calculator.ComputeHash(new ArraySegment<byte>(Temporary.ToArray(), 0, 0x15E).Array));
+            Header.LogoCRC16 =
+                BitConverter.ToUInt16(
+                    Calculator.ComputeHash(new ArraySegment<byte>(Temporary.ToArray(), 0xC0, 0x9C).Array));
+            Header.SecureCRC16 = BitConverter.ToUInt16(Calculator.ComputeHash(
+                new ArraySegment<byte>(Temporary.ToArray(), (int) Header.ARM9Offset,
+                    (int) (0x8000 - 2 * Header.ARM9Offset)).Array));
             Temporary.Close();
         }
     }

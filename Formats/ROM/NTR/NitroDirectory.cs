@@ -10,6 +10,7 @@ namespace NitroSharp.Formats.ROM
     public class NitroDirectory
     {
         public string Name { get; set; }
+        public string Path { get; set; }
         public uint ID { get; set; }
         public NitroDirectory Parent { get; set; }
         public List<NitroDirectory> Subdirectories { get; set; }
@@ -17,7 +18,6 @@ namespace NitroSharp.Formats.ROM
 
         // Used by the offset assigning function ONLY.
         static uint BaseOffset;
-
         public NitroDirectory(string Name, uint ID, NitroDirectory Parent)
         {
             this.Name = Name;
@@ -50,13 +50,19 @@ namespace NitroSharp.Formats.ROM
                 {
                     // Directory
                     uint ID = Binary.ReadUInt16();
-                    NitroDirectory Directory = new NitroDirectory(Name, ID, Parent);
+                    NitroDirectory Directory = new NitroDirectory(Name, ID, Parent)
+                    {
+                        Path = string.Join("/", Parent.Path, Name)
+                    };
                     Parent.Subdirectories.Add(Directory);
                     ParseDirectory(Directory, Binary, Origin, StartOffsets, EndOffsets);
                 }
                 else
                 {
-                    Parent.Files.Add(new NitroFile(Name, FileID, StartOffsets[FileID], EndOffsets[FileID] - StartOffsets[FileID], Parent));
+                    Parent.Files.Add(new NitroFile(Name, FileID, StartOffsets[FileID], EndOffsets[FileID] - StartOffsets[FileID], Parent)
+                    {
+                        Path = string.Join("/", Parent.Path, Name)
+                    });
                     Parent.Files.Last().GetFileFromROMStream(Binary);
                 }
 
@@ -65,17 +71,20 @@ namespace NitroSharp.Formats.ROM
             Binary.BaseStream.Position = OriginalPosition;
         }
 
-        public static NitroFile SearchDirectoryForFile(NitroDirectory Parent, string Path, string Root)
+        public static NitroFile SearchDirectoryForFile(NitroDirectory Parent, string FilePath)
         {
             // Perform a depth-first search, recursively.
             if (Parent == null)
                 return null;
             
-            NitroFile Match = Parent.Files.Find(x => $"{Root}/{x.Name}".Equals(Path));
+            NitroFile Match = Parent.Files.Find(x => x.Path.Equals(FilePath));
             if (Match == null)
                 foreach (NitroDirectory Directory in Parent.Subdirectories)
-                    SearchDirectoryForFile(Directory, Path, string.Join('/', Root, Parent.Name));
-
+                {
+                    Match = SearchDirectoryForFile(Directory, FilePath);
+                    if (Match != null)
+                        break;
+                }
             // If we reach here, we found a match.
             return Match;
         }
@@ -89,10 +98,10 @@ namespace NitroSharp.Formats.ROM
 
             Root.Subdirectories.ForEach(x => WriteFileImageTable(Binary, x));
         }
-        public static void UpdateOffsets(NitroDirectory Root, uint Base) {
+        public static void UpdateBaseOffset(uint Base) {
             BaseOffset = Base;
         }
-        private static void UpdateOffsets(NitroDirectory Root) {
+        public static void UpdateOffsets(NitroDirectory Root) {
             Root.Files.ForEach(x => {
                 x.Offset = BaseOffset;
                 BaseOffset += x.Size;

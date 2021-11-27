@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Nito.HashAlgorithms.CRC" Version="1.0.0" />
+    <PackageReference Include="OpenTK.NetStandard" Version="1.0.5.32" />
   </ItemGroup>
 
 </Project>

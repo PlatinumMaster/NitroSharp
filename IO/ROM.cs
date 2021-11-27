@@ -1,37 +1,34 @@
-﻿using NitroSharp.Formats.ROM;
-using NitroSharp.Formats.ROM.TWL;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using NitroSharp.Formats.ROM;
 
 namespace NitroSharp.IO
 {
     public class ROM
     {
-        public NitroDirectory Root { get; set; }
-        public NitroHeader Header { get; set; }
-        public List<NitroOverlay> ARM9Overlays;
+        public ARM7 ARM7Binary;
+        public ARM7i ARM7iBinary;
         public List<NitroOverlay> ARM7Overlays;
-        public NitroOverlayTable ARM9OverlayTable;
         public NitroOverlayTable ARM7OverlayTable;
         public ARM9 ARM9Binary;
-        public ARM7 ARM7Binary;
         public ARM9i ARM9iBinary;
-        public ARM7i ARM7iBinary;
+        public List<NitroOverlay> ARM9Overlays;
+        public NitroOverlayTable ARM9OverlayTable;
         public NitroBanner Banner;
-        public NitroByteWrapper SectorHashtable;
         public NitroByteWrapper BlockHashtable;
         public NitroByteWrapper DigestNTR;
         public NitroByteWrapper DigestTWL;
         public NitroByteWrapper ModcryptArea;
         public NitroByteWrapper ModcryptArea2;
+        public NitroByteWrapper SectorHashtable;
+
         public ROM(string Path)
         {
-            BinaryReader Binary = new BinaryReader(File.Open(Path, FileMode.Open), Encoding.ASCII);
-            Dictionary<uint, uint> StartOffsets = new Dictionary<uint, uint>(), EndOffsets = new Dictionary<uint, uint>();
+            var Binary = new BinaryReader(File.Open(Path, FileMode.Open), Encoding.ASCII);
+            Dictionary<uint, uint> StartOffsets = new Dictionary<uint, uint>(),
+                EndOffsets = new Dictionary<uint, uint>();
             ARM9Overlays = new List<NitroOverlay>();
             ARM7Overlays = new List<NitroOverlay>();
             Root = new NitroDirectory("/", 0xF000, null);
@@ -49,18 +46,22 @@ namespace NitroSharp.IO
 
             for (uint i = 0; i < Header.ARM9OverlayTableSize / 0x20; ++i)
             {
-                ARM9Overlays.Add(new NitroOverlay(StartOffsets[i], EndOffsets[i] - StartOffsets[i]));
+                ARM9Overlays.Add(new NitroOverlay(StartOffsets[i], EndOffsets[i] - StartOffsets[i], Binary));
                 ARM9Overlays[^1].GetFileFromROMStream(Binary);
             }
 
             for (uint i = 0; i < Header.ARM7OverlayTableSize / 0x20; ++i)
             {
-                ARM7Overlays.Add(new NitroOverlay(StartOffsets[i + Header.ARM7OverlayTableSize], EndOffsets[i + Header.ARM7OverlayTableSize] - StartOffsets[i + Header.ARM7OverlayTableSize]));
+                ARM7Overlays.Add(new NitroOverlay(StartOffsets[i + Header.ARM7OverlayTableSize],
+                    EndOffsets[i + Header.ARM7OverlayTableSize] - StartOffsets[i + Header.ARM7OverlayTableSize],
+                    Binary));
                 ARM7Overlays[^1].GetFileFromROMStream(Binary);
             }
-            
-            ARM9OverlayTable = new NitroOverlayTable(Header.ARM9OverlayTableOffset, Header.ARM9OverlayTableSize);
-            ARM7OverlayTable = new NitroOverlayTable(Header.ARM7OverlayTableOffset, Header.ARM7OverlayTableSize);
+
+            ARM9OverlayTable =
+                new NitroOverlayTable(Header.ARM9OverlayTableOffset, Header.ARM9OverlayTableSize, Binary);
+            ARM7OverlayTable =
+                new NitroOverlayTable(Header.ARM7OverlayTableOffset, Header.ARM7OverlayTableSize, Binary);
             ARM9Binary = new ARM9(Header.ARM9EntryAddress, Header.ARM9Offset, Header.ARM9Size, Header.ARM9RAMAddress);
             ARM7Binary = new ARM7(Header.ARM7EntryAddress, Header.ARM7Offset, Header.ARM7Size, Header.ARM7RAMAddress);
             Banner = new NitroBanner(Header.BannerOffset, Header.BannerSize);
@@ -70,16 +71,20 @@ namespace NitroSharp.IO
             Banner.GetFileFromROMStream(Binary);
             ARM9Binary.GetFileFromROMStream(Binary);
             ARM7Binary.GetFileFromROMStream(Binary);
-            
-            if (Header.HeaderSize > 0x200 && (Header.UnitCode & 2) > 0) {
-                ARM9iBinary = new ARM9i(Header.ARM9iEntryAddress, Header.ARM9iOffset, Header.ARM9iSize, Header.ARM9iRAMAddress);
-                ARM7iBinary = new ARM7i(Header.ARM7iEntryAddress, Header.ARM7iOffset, Header.ARM7iSize, Header.ARM7iRAMAddress);
-                SectorHashtable = new NitroByteWrapper(Header.SectorHashtableOffset, Header.SectorHashtableSize);
-                BlockHashtable = new NitroByteWrapper(Header.BlockHashtableOffset, Header.BlockHashtableSize);
-                DigestNTR = new NitroByteWrapper(Header.DigestNTROffset, Header.DigestNTRSize);
-                DigestTWL = new NitroByteWrapper(Header.DigestTWLOffset, Header.DigestTWLSize);
-                ModcryptArea = new NitroByteWrapper(Header.ModcryptOffset, Header.ModcryptSize);
-                ModcryptArea2 = new NitroByteWrapper(Header.Modcrypt2Offset, Header.Modcrypt2Size);
+
+            if (Header.HeaderSize > 0x200 && (Header.UnitCode & 2) > 0)
+            {
+                ARM9iBinary = new ARM9i(Header.ARM9iEntryAddress, Header.ARM9iOffset, Header.ARM9iSize,
+                    Header.ARM9iRAMAddress);
+                ARM7iBinary = new ARM7i(Header.ARM7iEntryAddress, Header.ARM7iOffset, Header.ARM7iSize,
+                    Header.ARM7iRAMAddress);
+                SectorHashtable =
+                    new NitroByteWrapper(Header.SectorHashtableOffset, Header.SectorHashtableSize, Binary);
+                BlockHashtable = new NitroByteWrapper(Header.BlockHashtableOffset, Header.BlockHashtableSize, Binary);
+                DigestNTR = new NitroByteWrapper(Header.DigestNTROffset, Header.DigestNTRSize, Binary);
+                DigestTWL = new NitroByteWrapper(Header.DigestTWLOffset, Header.DigestTWLSize, Binary);
+                ModcryptArea = new NitroByteWrapper(Header.ModcryptOffset, Header.ModcryptSize, Binary);
+                ModcryptArea2 = new NitroByteWrapper(Header.Modcrypt2Offset, Header.Modcrypt2Size, Binary);
 
                 SectorHashtable.GetFileFromROMStream(Binary);
                 BlockHashtable.GetFileFromROMStream(Binary);
@@ -90,126 +95,107 @@ namespace NitroSharp.IO
                 ModcryptArea.GetFileFromROMStream(Binary);
                 ModcryptArea2.GetFileFromROMStream(Binary);
             }
-
         }
+
+        public NitroDirectory Root { get; set; }
+        public NitroHeader Header { get; set; }
 
         public void Serialize(string Path)
         {
-            // Death trap inbound.
-            BinaryWriter Binary = new BinaryWriter(File.OpenWrite(Path));
-            Binary.Write(new byte[0x4000]);
+            List<uint> ARM9OverlayStartOffsets = new List<uint>(),
+                ARM7OverlayStartOffsets = new List<uint>(),
+                ARM9OverlayEndOffsets = new List<uint>(),
+                ARM7OverlayEndOffsets = new List<uint>();
 
-            List<uint> ARM9OverlayStartOffsets = new List<uint>(), ARM7OverlayStartOffsets = new List<uint>(),
-                 ARM9OverlayEndOffsets = new List<uint>(), ARM7OverlayEndOffsets = new List<uint>();
+            // Temporary
+            Header.HeaderSize = 0x200;
+
+            var Binary = new BinaryWriter(File.Create(Path));
+            Binary.Write(new byte[Header.HeaderSize]);
 
             // Write the ARM9...
-            Header.ARM9Offset = (uint)Binary.BaseStream.Position;
+            Header.ARM9Offset = (uint) Binary.BaseStream.Position;
             Header.ARM9Size = ARM9Binary.Size;
             Binary.Write(ARM9Binary.Data);
 
-            Header.ARM9OverlayTableOffset = (uint)Binary.BaseStream.Position;
+            Header.ARM9OverlayTableOffset = (uint) Binary.BaseStream.Position;
             Header.ARM9OverlayTableSize = ARM9OverlayTable.Size;
             Binary.Write(ARM9OverlayTable.Data);
 
-            foreach (NitroOverlay Overlay in ARM9Overlays)
+            foreach (var Overlay in ARM9Overlays)
             {
-                ARM9OverlayStartOffsets.Add((uint)Binary.BaseStream.Position);
+                ARM9OverlayStartOffsets.Add((uint) Binary.BaseStream.Position);
                 Binary.Write(Overlay.Data);
-                ARM9OverlayEndOffsets.Add((uint)Binary.BaseStream.Position);
+                ARM9OverlayEndOffsets.Add((uint) Binary.BaseStream.Position);
             }
 
             // Now the ARM7...
-            Header.ARM7Offset = (uint)Binary.BaseStream.Position;
+            Header.ARM7Offset = (uint) Binary.BaseStream.Position;
             Header.ARM7Size = ARM7Binary.Size;
             Binary.Write(ARM7Binary.Data);
 
-            Header.ARM7OverlayTableOffset = (uint)Binary.BaseStream.Position;
+            Header.ARM7OverlayTableOffset = (uint) Binary.BaseStream.Position;
             Header.ARM7OverlayTableSize = ARM7OverlayTable.Size;
             Binary.Write(ARM7OverlayTable.Data);
 
-            foreach (NitroOverlay Overlay in ARM7Overlays)
+            foreach (var Overlay in ARM7Overlays)
             {
-                ARM9OverlayStartOffsets.Add((uint)Binary.BaseStream.Position);
+                ARM9OverlayStartOffsets.Add((uint) Binary.BaseStream.Position);
                 Binary.Write(Overlay.Data);
-                ARM9OverlayEndOffsets.Add((uint)Binary.BaseStream.Position);
+                ARM9OverlayEndOffsets.Add((uint) Binary.BaseStream.Position);
             }
 
             // File Name Table
-            Header.FileNameTableOffset = (uint)Binary.BaseStream.Position;
+            Header.FileNameTableOffset = (uint) Binary.BaseStream.Position;
             NitroDirectory.ConstructFileNameTable(Binary, Root);
-            Header.FileNameTableSize = (uint)(Binary.BaseStream.Position - Header.FileNameTableOffset);
+            Header.FileNameTableSize = (uint) (Binary.BaseStream.Position - Header.FileNameTableOffset);
 
             // File Allocation Table
-            ulong FileImageOffset = (ulong)(0x4000
-            + ARM9Binary.Size + ARM9OverlayTable.Size + ARM9Overlays.Aggregate(0U, (Acc, E) => Acc + E.Size)
-            + ARM7Binary.Size + ARM7OverlayTable.Size + ARM7Overlays.Aggregate(0U, (Acc, E) => Acc + E.Size)
-            + ARM9Overlays.Count * 8 + ARM7Overlays.Count * 8 + 0x840);
-            Header.FileAllocationTableOffset = (uint)Binary.BaseStream.Position;
-            NitroDirectory.UpdateOffsets(Root, (uint)FileImageOffset);
-            NitroDirectory.ConstructFileAllocationTable(Binary, Root, ARM9OverlayStartOffsets, ARM9OverlayEndOffsets, ARM7OverlayStartOffsets, ARM7OverlayEndOffsets);
-            Header.FileAllocationTableSize = (uint)(Binary.BaseStream.Position - Header.FileAllocationTableOffset);
+            var FileImageOffset = (ulong) (0x4000 +
+                                           +ARM9Binary.Size + ARM9OverlayTable.Size +
+                                           ARM9Overlays.Aggregate(0U, (Acc, E) => Acc + E.Size)
+                                           + ARM7Binary.Size + ARM7OverlayTable.Size +
+                                           ARM7Overlays.Aggregate(0U, (Acc, E) => Acc + E.Size)
+                                           + ARM9Overlays.Count * 8 + ARM7Overlays.Count * 8);
+            Header.FileAllocationTableOffset = (uint) Binary.BaseStream.Position;
+            NitroDirectory.UpdateBaseOffset((uint) FileImageOffset);
+            NitroDirectory.UpdateOffsets(Root);
+            NitroDirectory.ConstructFileAllocationTable(Binary, Root, ARM9OverlayStartOffsets, ARM9OverlayEndOffsets,
+                ARM7OverlayStartOffsets, ARM7OverlayEndOffsets);
+            Header.FileAllocationTableSize = (uint) (Binary.BaseStream.Position - Header.FileAllocationTableOffset);
 
             // Banner
-            Header.BannerOffset = (uint)Binary.BaseStream.Position;
+            Header.BannerOffset = (uint) Binary.BaseStream.Position;
             Header.BannerSize = Banner.Size;
             Binary.Write(Banner.FileData);
 
             // The File Image
             NitroDirectory.WriteFileImageTable(Binary, Root);
-            Header.ROMSize = (uint)Binary.BaseStream.Position;
+            Header.ROMSize = (uint) Binary.BaseStream.Position;
 
             if (Header.HeaderSize > 0x200)
             {
-                // NTR Digest
-                Header.DigestNTROffset = (uint)Binary.BaseStream.Position;
-                Header.DigestNTRSize = DigestNTR.Size;
-
                 // DSi Binary time...
+
                 // ARM9i...
-                Header.ARM9iOffset = (uint)Binary.BaseStream.Position;
+                Header.ARM9iOffset = (uint) Binary.BaseStream.Position;
                 Header.ARM9iSize = ARM9iBinary.Size;
                 Binary.Write(ARM9iBinary.Data);
 
                 // ARM7i...
-                Header.ARM7iOffset = (uint)Binary.BaseStream.Position;
+                Header.ARM7iOffset = (uint) Binary.BaseStream.Position;
                 Header.ARM7iSize = ARM7iBinary.Size;
                 Binary.Write(ARM7iBinary.Data);
-
-                // Sector Hashtable
-                Header.SectorHashtableOffset = (uint)Binary.BaseStream.Position;
-                Header.SectorHashtableSize = SectorHashtable.Size;
-                Binary.Write(SectorHashtable.Data);
-
-                // Block Hashtable
-                Header.BlockHashtableOffset = (uint)Binary.BaseStream.Position;
-                Header.BlockHashtableSize = BlockHashtable.Size;
-                Binary.Write(BlockHashtable.Data);
-
-                // Modcrypt 
-                Header.ModcryptOffset = (uint)Binary.BaseStream.Position;
-                Header.ModcryptSize = ModcryptArea.Size;
-                Binary.Write(ModcryptArea.Data);
-
-                // Modcrypt 2
-                Header.Modcrypt2Offset = (uint)Binary.BaseStream.Position;
-                Header.Modcrypt2Size = ModcryptArea2.Size;
-                Binary.Write(ModcryptArea2.Data);
-
-                // TWL Digest
-                Header.DigestTWLOffset = (uint)Binary.BaseStream.Position;
-                Header.DigestTWLSize = DigestTWL.Size;
-
-                Header.TotalTWLROMSize = (uint)Binary.BaseStream.Position;
             }
-            
+
             // Calculate the CRC.
             NitroHeader.CalculateCRC(Header);
             // Header time!
             Binary.BaseStream.Position = 0x0;
 
-            Binary.Write(Header.Title.ToCharArray());
-            Binary.Write(Header.GameCode.ToCharArray());
-            Binary.Write(Header.MakerCode.ToCharArray());
+            Binary.Write(Header.Title.Take(0xC).ToArray());
+            Binary.Write(Header.GameCode.Take(0x4).ToArray());
+            Binary.Write(Header.MakerCode.Take(0x2).ToArray());
             Binary.Write(Header.UnitCode);
             Binary.Write(Header.EncryptionSeed);
             Binary.Write(Header.DeviceCapacity);
@@ -257,13 +243,13 @@ namespace NitroSharp.IO
             if (Header.HeaderSize > 0x200)
             {
                 // Write all the TWL stuff...
-                foreach (byte[] Setting in Header.GlobalMBKSetting)
+                foreach (var Setting in Header.GlobalMBKSetting)
                     Binary.Write(Setting);
-                foreach (uint Setting in Header.ARM9MBKSetting)
+                foreach (var Setting in Header.ARM9MBKSetting)
                     Binary.Write(Setting);
-                foreach (uint Setting in Header.ARM7MBKSetting)
+                foreach (var Setting in Header.ARM7MBKSetting)
                     Binary.Write(Setting);
-                foreach (uint Setting in Header.mbk9_wramcnt_setting)
+                foreach (var Setting in Header.mbk9_wramcnt_setting)
                     Binary.Write(Setting);
 
                 Binary.Write(Header.RegionFlags);

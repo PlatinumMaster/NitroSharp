@@ -1,10 +1,7 @@
-﻿namespace NitroSharp.Formats.ROM
-{
-    public class ARM9 : ARMBinary
-    {
-        public ARM9(uint EntryAddress, uint Offset, uint Size, uint RAMAddress) : base(EntryAddress, Offset, Size,
-            RAMAddress)
-        {
+﻿namespace NitroSharp.Formats.ROM {
+    public class Arm9 : ArmBinary {
+        public Arm9(uint entryAddress, uint offset, uint size, uint ramAddress) : base(entryAddress, offset, size,
+            ramAddress) {
         }
     }
 }

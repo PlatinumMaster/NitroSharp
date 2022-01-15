@@ -1,6 +1,4 @@
-﻿
-
-/*
+﻿/*
 namespace NitroSharp.Formats.ROM.TWL
 {
     public class TwilightHeader
@@ -217,3 +215,4 @@ namespace NitroSharp.Formats.ROM.TWL
 
 }
 */
+

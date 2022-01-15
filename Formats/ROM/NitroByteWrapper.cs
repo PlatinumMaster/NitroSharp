@@ -1,43 +1,36 @@
 ﻿using System.IO;
 
-namespace NitroSharp.Formats.ROM
-{
-    public class NitroByteWrapper
-    {
-        protected byte[] _Data;
+namespace NitroSharp.Formats.ROM {
+    public class NitroByteWrapper {
+        protected byte[] _data;
 
-        public NitroByteWrapper(uint Offset, uint Size, BinaryReader Binary)
-        {
-            this.Offset = Offset;
-            this.Size = Size;
-            GetFileFromROMStream(Binary);
+        public NitroByteWrapper(uint offset, uint size, BinaryReader binary) {
+            this.offset = offset;
+            this.size = size;
+            getFileFromRomStream(binary);
         }
 
-        protected NitroByteWrapper()
-        {
+        protected NitroByteWrapper() {
         }
 
-        public uint Offset { get; set; }
-        public uint Size { get; set; }
+        public uint offset { get; set; }
+        public uint size { get; set; }
 
-        public byte[] Data
-        {
-            get => _Data;
-            set => UpdateBinary(value);
+        public byte[] data {
+            get => _data;
+            set => updateBinary(value);
         }
 
-        protected void UpdateBinary(byte[] NewData)
-        {
-            _Data = NewData;
-            Size = (uint) NewData.Length;
+        protected void updateBinary(byte[] newData) {
+            _data = newData;
+            size = (uint) newData.Length;
         }
 
-        public void GetFileFromROMStream(BinaryReader Binary)
-        {
-            var OriginalPosition = Binary.BaseStream.Position;
-            Binary.BaseStream.Position = Offset;
-            Data = Binary.ReadBytes((int) Size);
-            Binary.BaseStream.Position = OriginalPosition;
+        public void getFileFromRomStream(BinaryReader binary) {
+            var originalPosition = binary.BaseStream.Position;
+            binary.BaseStream.Position = offset;
+            data = binary.ReadBytes((int) size);
+            binary.BaseStream.Position = originalPosition;
         }
     }
 }

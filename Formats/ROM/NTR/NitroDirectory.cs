@@ -1,188 +1,187 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace NitroSharp.Formats.ROM
-{
-    public class NitroDirectory
-    {
-        public string Name { get; set; }
-        public string Path { get; set; }
-        public uint ID { get; set; }
-        public NitroDirectory Parent { get; set; }
-        public List<NitroDirectory> Subdirectories { get; set; }
-        public List<NitroFile> Files { get; set; }
-
+namespace NitroSharp.Formats.ROM {
+    public class NitroDirectory {
         // Used by the offset assigning function ONLY.
-        static uint BaseOffset;
-        public NitroDirectory(string Name, uint ID, NitroDirectory Parent)
-        {
-            this.Name = Name;
-            this.ID = ID;
-            this.Parent = Parent;
-            Subdirectories = new List<NitroDirectory>();
-            Files = new List<NitroFile>();
+        private static uint _baseOffset;
+
+        public NitroDirectory(string name, uint id, NitroDirectory parent) {
+            this.name = name;
+            this.id = id;
+            this.parent = parent;
+            subdirectories = new List<NitroDirectory>();
+            files = new List<NitroFile>();
         }
 
-        public static void ParseDirectory(NitroDirectory Parent, BinaryReader Binary, long Origin, Dictionary<uint, uint> StartOffsets, Dictionary<uint, uint> EndOffsets)
-        {
-            long OriginalPosition = Binary.BaseStream.Position;
-            Binary.BaseStream.Position = Origin + 8 * (Parent.ID & 0xFFF);
+        public string name { get; set; }
+        public string path { get; set; }
+        public uint id { get; set; }
+        public NitroDirectory parent { get; set; }
+        public List<NitroDirectory> subdirectories { get; set; }
+        public List<NitroFile> files { get; set; }
 
-            uint SubtableOffset = Binary.ReadUInt32();
-            ushort FirstFileID = Binary.ReadUInt16();
+        public static void parseDirectory(NitroDirectory parent, BinaryReader binary, long origin,
+            Dictionary<uint, uint> startOffsets, Dictionary<uint, uint> endOffsets) {
+            var originalPosition = binary.BaseStream.Position;
+            binary.BaseStream.Position = origin + 8 * (parent.id & 0xFFF);
 
-            Binary.BaseStream.Position = Origin + SubtableOffset;
+            var subtableOffset = binary.ReadUInt32();
+            var firstFileId = binary.ReadUInt16();
 
-            for (uint FileID = FirstFileID; ; ++FileID)
-            {
-                int EntryType = Binary.ReadByte();
-                int NameLength = EntryType & 0x7F;
+            binary.BaseStream.Position = origin + subtableOffset;
 
-                if (NameLength == 0)
+            for (uint fileId = firstFileId;; ++fileId) {
+                int entryType = binary.ReadByte();
+                var nameLength = entryType & 0x7F;
+
+                if (nameLength == 0)
                     break;
 
-                string Name = new string(Binary.ReadChars(NameLength));
-                if ((EntryType & 0x80) > 0x7F)
-                {
+                var name = new string(binary.ReadChars(nameLength));
+                if ((entryType & 0x80) > 0x7F) {
                     // Directory
-                    uint ID = Binary.ReadUInt16();
-                    NitroDirectory Directory = new NitroDirectory(Name, ID, Parent)
-                    {
-                        Path = string.Join("/", Parent.Path, Name)
+                    uint id = binary.ReadUInt16();
+                    var directory = new NitroDirectory(name, id, parent) {
+                        path = string.Join("/", parent.path, name)
                     };
-                    Parent.Subdirectories.Add(Directory);
-                    ParseDirectory(Directory, Binary, Origin, StartOffsets, EndOffsets);
+                    parent.subdirectories.Add(directory);
+                    parseDirectory(directory, binary, origin, startOffsets, endOffsets);
                 }
-                else
-                {
-                    Parent.Files.Add(new NitroFile(Name, FileID, StartOffsets[FileID], EndOffsets[FileID] - StartOffsets[FileID], Parent)
-                    {
-                        Path = string.Join("/", Parent.Path, Name)
+                else {
+                    parent.files.Add(new NitroFile(name, fileId, startOffsets[fileId],
+                        endOffsets[fileId] - startOffsets[fileId], parent) {
+                        path = string.Join("/", parent.path, name)
                     });
-                    Parent.Files.Last().GetFileFromROMStream(Binary);
+                    parent.files.Last().getFileFromRomStream(binary);
                 }
-
             }
 
-            Binary.BaseStream.Position = OriginalPosition;
+            binary.BaseStream.Position = originalPosition;
         }
 
-        public static NitroFile SearchDirectoryForFile(NitroDirectory Parent, string FilePath)
-        {
+        public static NitroFile searchDirectoryForFile(NitroDirectory parent, string filePath) {
             // Perform a depth-first search, recursively.
-            if (Parent == null)
+            if (parent == null)
                 return null;
-            
-            NitroFile Match = Parent.Files.Find(x => x.Path.Equals(FilePath));
-            if (Match == null)
-                foreach (NitroDirectory Directory in Parent.Subdirectories)
-                {
-                    Match = SearchDirectoryForFile(Directory, FilePath);
-                    if (Match != null)
+
+            var match = parent.files.Find(x => x.path.Equals(filePath));
+            if (match == null)
+                foreach (var directory in parent.subdirectories) {
+                    match = searchDirectoryForFile(directory, filePath);
+                    if (match != null)
                         break;
                 }
+
             // If we reach here, we found a match.
-            return Match;
+            return match;
         }
 
-        public static void WriteFileImageTable(BinaryWriter Binary, NitroDirectory Root)
-        {
-            Root.Files.ForEach(x => {
-                Binary.BaseStream.Position = x.Offset;
-                Binary.Write(x.FileData);
+        public static void writeFileImageTable(BinaryWriter binary, NitroDirectory root) {
+            root.files.ForEach(x => {
+                binary.BaseStream.Position = x.offset;
+                binary.Write(x.fileData);
             });
 
-            Root.Subdirectories.ForEach(x => WriteFileImageTable(Binary, x));
+            root.subdirectories.ForEach(x => writeFileImageTable(binary, x));
         }
-        public static void UpdateBaseOffset(uint Base) {
-            BaseOffset = Base;
+
+        public static void updateBaseOffset(uint @base) {
+            _baseOffset = @base;
         }
-        public static void UpdateOffsets(NitroDirectory Root) {
-            Root.Files.ForEach(x => {
-                x.Offset = BaseOffset;
-                BaseOffset += x.Size;
+
+        public static void updateOffsets(NitroDirectory root) {
+            root.files.ForEach(x => {
+                x.offset = _baseOffset;
+                _baseOffset += x.size;
             });
-            Root.Subdirectories.ForEach(x => UpdateOffsets(x));
+            root.subdirectories.ForEach(x => updateOffsets(x));
         }
 
-        public static void ConstructFileAllocationTable(BinaryWriter Binary, NitroDirectory Root, List<uint> ARM9OverlayStartOffsets, List<uint> ARM9OverlayEndOffsets,
-            List<uint> ARM7OverlayStartOffsets, List<uint> ARM7OverlayEndOffsets)
-        {
-            if (Root.ID != 0xF000)
+        public static void constructFileAllocationTable(BinaryWriter binary, NitroDirectory root,
+            List<uint> arm9OverlayStartOffsets, List<uint> arm9OverlayEndOffsets,
+            List<uint> arm7OverlayStartOffsets, List<uint> arm7OverlayEndOffsets) {
+            if (root.id != 0xF000)
                 throw new Exception("Nice try, yo. This isn't the root directory.");
 
-            for (int i = 0; i < ARM9OverlayStartOffsets.Count; ++i) {
-                Binary.Write(ARM9OverlayStartOffsets[i]);
-                Binary.Write(ARM9OverlayEndOffsets[i]);
+            for (var i = 0; i < arm9OverlayStartOffsets.Count; ++i) {
+                binary.Write(arm9OverlayStartOffsets[i]);
+                binary.Write(arm9OverlayEndOffsets[i]);
             }
 
-            for (int i = 0; i < ARM7OverlayStartOffsets.Count; ++i)
-            {
-                Binary.Write(ARM7OverlayStartOffsets[i]);
-                Binary.Write(ARM7OverlayEndOffsets[i]);
+            for (var i = 0; i < arm7OverlayStartOffsets.Count; ++i) {
+                binary.Write(arm7OverlayStartOffsets[i]);
+                binary.Write(arm7OverlayEndOffsets[i]);
             }
-            ConstructFileAllocationTable(Binary, Root);
+
+            constructFileAllocationTable(binary, root);
         }
 
-        private static void ConstructFileAllocationTable(BinaryWriter Binary, NitroDirectory Root)
-        {
-            foreach (NitroFile File in Root.Files)
-            {
-                Binary.Write(File.Offset);
-                Binary.Write(File.Offset + File.Size);
+        private static void constructFileAllocationTable(BinaryWriter binary, NitroDirectory root) {
+            foreach (var file in root.files) {
+                binary.Write(file.offset);
+                binary.Write(file.offset + file.size);
             }
-            foreach (NitroDirectory Directory in Root.Subdirectories)
-                ConstructFileAllocationTable(Binary, Directory);
+
+            foreach (var directory in root.subdirectories)
+                constructFileAllocationTable(binary, directory);
         }
 
-        public static void ConstructFileNameTable(BinaryWriter Binary, NitroDirectory Root)
-        {
-            uint NumberOfDirectories = (uint)(NumberOfSubdirectories(Root) + Root.Subdirectories.Count + 1);
-            MemoryStream MainTable = new MemoryStream(new byte[NumberOfDirectories * 8]),
-                SubTable = new MemoryStream(new byte[SubtableSize(Root)]);
-            
-            if (Root.ID != 0xF000)
+        public static void constructFileNameTable(BinaryWriter binary, NitroDirectory root) {
+            var numberOfDirectories = (uint) (numberOfSubdirectories(root) + root.subdirectories.Count + 1);
+            MemoryStream mainTable = new MemoryStream(new byte[numberOfDirectories * 8]),
+                subTable = new MemoryStream(new byte[subtableSize(root)]);
+
+            if (root.id != 0xF000)
                 throw new Exception("Nice try, yo. This isn't the root directory.");
 
-            MainTable.Write(BitConverter.GetBytes(MainTable.Capacity));
-            MainTable.Write(BitConverter.GetBytes((ushort)GetFirstFileID(Root)));
-            MainTable.Write(BitConverter.GetBytes((ushort)NumberOfDirectories));
+            mainTable.Write(BitConverter.GetBytes(mainTable.Capacity));
+            mainTable.Write(BitConverter.GetBytes((ushort) getFirstFileId(root)));
+            mainTable.Write(BitConverter.GetBytes((ushort) numberOfDirectories));
 
-            ConstructFileNameTable(Root, ref MainTable, ref SubTable);
-            Binary.Write(MainTable.ToArray());
-            Binary.Write(SubTable.ToArray());
+            constructFileNameTable(root, ref mainTable, ref subTable);
+            binary.Write(mainTable.ToArray());
+            binary.Write(subTable.ToArray());
         }
 
-        private static void ConstructFileNameTable(NitroDirectory Root, ref MemoryStream MainTable, ref MemoryStream SubTable)
-        {
-            foreach (NitroDirectory Directory in Root.Subdirectories)
-            {
-                SubTable.WriteByte((byte)(128 + Directory.Name.Length));
-                SubTable.Write(Encoding.UTF8.GetBytes(Directory.Name));
-                SubTable.Write(BitConverter.GetBytes((ushort)Directory.ID));
+        private static void constructFileNameTable(NitroDirectory root, ref MemoryStream mainTable,
+            ref MemoryStream subTable) {
+            foreach (var directory in root.subdirectories) {
+                subTable.WriteByte((byte) (128 + directory.name.Length));
+                subTable.Write(Encoding.UTF8.GetBytes(directory.name));
+                subTable.Write(BitConverter.GetBytes((ushort) directory.id));
             }
-            foreach (NitroFile File in Root.Files)
-            {
-                SubTable.WriteByte((byte)File.Name.Length);
-                SubTable.Write(Encoding.UTF8.GetBytes(File.Name));
+
+            foreach (var file in root.files) {
+                subTable.WriteByte((byte) file.name.Length);
+                subTable.Write(Encoding.UTF8.GetBytes(file.name));
             }
-            SubTable.WriteByte(0);
-            foreach (NitroDirectory Directory in Root.Subdirectories)
-            {
-                MainTable.Write(BitConverter.GetBytes((uint)(MainTable.Capacity + SubTable.Position)));
-                MainTable.Write(BitConverter.GetBytes((ushort)GetFirstFileID(Directory)));
-                MainTable.Write(BitConverter.GetBytes((ushort)Directory.Parent.ID));
-                ConstructFileNameTable(Directory, ref MainTable, ref SubTable);
+
+            subTable.WriteByte(0);
+            foreach (var directory in root.subdirectories) {
+                mainTable.Write(BitConverter.GetBytes((uint) (mainTable.Capacity + subTable.Position)));
+                mainTable.Write(BitConverter.GetBytes((ushort) getFirstFileId(directory)));
+                mainTable.Write(BitConverter.GetBytes((ushort) directory.parent.id));
+                constructFileNameTable(directory, ref mainTable, ref subTable);
             }
         }
-        public static uint GetFirstFileID(NitroDirectory Root) => Root.Files.Count > 0 ? Root.Files[0].ID : GetFirstFileID(Root.Subdirectories[0]);
-        public static uint NumberOfSubdirectories(NitroDirectory Root) => Root.Subdirectories.Aggregate(0U, (Acc, E) => (uint)(Acc + E.Subdirectories.Count + NumberOfSubdirectories(E)));
-        public static uint SubtableSize(NitroDirectory Root) => 1 + Root.Files.Aggregate(0U, (Acc, E) => (uint)(Acc + E.Name.Length + 1))
-            + Root.Subdirectories.Aggregate(0U, (Acc, E) => (uint)(Acc + E.Name.Length + 3)) 
-            + Root.Subdirectories.Aggregate(0U, (Acc, E) => Acc + SubtableSize(E));
+
+        public static uint getFirstFileId(NitroDirectory root) {
+            return root.files.Count > 0 ? root.files[0].id : getFirstFileId(root.subdirectories[0]);
+        }
+
+        public static uint numberOfSubdirectories(NitroDirectory root) {
+            return root.subdirectories.Aggregate(0U,
+                (acc, e) => (uint) (acc + e.subdirectories.Count + numberOfSubdirectories(e)));
+        }
+
+        public static uint subtableSize(NitroDirectory root) {
+            return 1 + root.files.Aggregate(0U, (acc, e) => (uint) (acc + e.name.Length + 1))
+                     + root.subdirectories.Aggregate(0U, (acc, e) => (uint) (acc + e.name.Length + 3))
+                     + root.subdirectories.Aggregate(0U, (acc, e) => acc + subtableSize(e));
+        }
     }
 }

@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Nito.HashAlgorithms.CRC" Version="1.0.0" />
-    <PackageReference Include="OpenTK.NetStandard" Version="1.0.5.32" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Avalonia.AvaloniaEdit" Version="0.10.4" />
+        <PackageReference Include="Nito.HashAlgorithms.CRC" Version="1.0.1" />
+        <PackageReference Include="OpenTK.NetStandard" Version="1.0.5.32" />
+    </ItemGroup>
 
 </Project>

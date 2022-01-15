@@ -1,38 +1,32 @@
 ﻿using System.IO;
 
-namespace NitroSharp.Formats.ROM
-{
-    public class NitroBanner
-    {
-        private byte[] _FileData;
+namespace NitroSharp.Formats.ROM {
+    public class NitroBanner {
+        private byte[] _fileData;
 
-        public NitroBanner(uint Offset, uint Size)
-        {
-            this.Offset = Offset;
-            this.Size = Size;
+        public NitroBanner(uint offset, uint size) {
+            this.offset = offset;
+            this.size = size;
         }
 
-        public uint Offset { get; set; }
-        public uint Size { get; private set; }
+        public uint offset { get; set; }
+        public uint size { get; private set; }
 
-        public byte[] FileData
-        {
-            get => _FileData;
-            set => UpdateFile(value);
+        public byte[] fileData {
+            get => _fileData;
+            set => updateFile(value);
         }
 
-        public void GetFileFromROMStream(BinaryReader Binary)
-        {
-            var OriginalPosition = Binary.BaseStream.Position;
-            Binary.BaseStream.Position = Offset;
-            FileData = Binary.ReadBytes((int) Size);
-            Binary.BaseStream.Position = OriginalPosition;
+        public void getFileFromRomStream(BinaryReader binary) {
+            var originalPosition = binary.BaseStream.Position;
+            binary.BaseStream.Position = offset;
+            fileData = binary.ReadBytes((int) size);
+            binary.BaseStream.Position = originalPosition;
         }
 
-        private void UpdateFile(byte[] NewFileData)
-        {
-            _FileData = NewFileData;
-            Size = (uint) NewFileData.Length;
+        private void updateFile(byte[] newFileData) {
+            _fileData = newFileData;
+            size = (uint) newFileData.Length;
         }
     }
 }

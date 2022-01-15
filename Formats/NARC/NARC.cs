@@ -2,115 +2,104 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace NitroSharp.Formats
-{
-    public class NARC
-    {
-        public NARC(byte[] Data)
-        {
-            var Binary = new BinaryReader(new MemoryStream(Data));
-            if (Binary.ReadUInt32() != 0x4352414E)
+namespace NitroSharp.Formats {
+    public class Narc {
+        public Narc(byte[] data) {
+            var binary = new BinaryReader(new MemoryStream(data));
+            if (binary.ReadUInt32() != 0x4352414E)
                 throw new Exception("Not a NARC!");
-            if (Binary.ReadUInt16() != 0xFFFE)
+            if (binary.ReadUInt16() != 0xFFFE)
                 throw new Exception("Little Endian NARCs only!");
-            Binary.BaseStream.Position = 0x10;
-            FAT = new FATB(Binary);
+            binary.BaseStream.Position = 0x10;
+            fat = new Fatb(binary);
         }
 
-        public FATB FAT { get; set; }
+        public Fatb fat { get; set; }
 
-        public byte[] Serialize()
-        {
-            var Buffer = new MemoryStream();
-            var Out = new BinaryWriter(Buffer);
+        public byte[] serialize() {
+            var buffer = new MemoryStream();
+            var @out = new BinaryWriter(buffer);
 
             // NARC Header
-            Out.Write(0x4352414E);
-            Out.Write((ushort) 0xFFFE);
-            Out.Write((ushort) 0x10);
-            Out.Write(0x0);
-            Out.Write((ushort) 0x10);
-            Out.Write((ushort) 0x3);
+            @out.Write(0x4352414E);
+            @out.Write((ushort) 0xFFFE);
+            @out.Write((ushort) 0x10);
+            @out.Write(0x0);
+            @out.Write((ushort) 0x10);
+            @out.Write((ushort) 0x3);
 
             // FATB Construction
-            Out.Write((uint) 0x46415442);
-            Out.Write((uint) (FAT.Entries.Count * 0x8 + 0xC));
-            Out.Write((ushort) FAT.Entries.Count);
-            Out.Write((ushort) 0x0);
-            uint BaseOffset = 0;
-            FAT.Entries.ForEach(Entry =>
-            {
-                Out.Write(BaseOffset);
-                Out.Write((uint) (BaseOffset + Entry.Buffer.Length));
-                BaseOffset += (uint) Entry.Buffer.Length;
+            @out.Write((uint) 0x46415442);
+            @out.Write((uint) (fat.entries.Count * 0x8 + 0xC));
+            @out.Write((ushort) fat.entries.Count);
+            @out.Write((ushort) 0x0);
+            uint baseOffset = 0;
+            fat.entries.ForEach(entry => {
+                @out.Write(baseOffset);
+                @out.Write((uint) (baseOffset + entry.buffer.Length));
+                baseOffset += (uint) entry.buffer.Length;
             });
 
             // FNTB Construction (lmao)
             // We'll do this one day
-            Out.Write(0x464E5442);
-            Out.Write(0x10);
-            Out.Write(0x4);
-            Out.Write(0x10000);
+            @out.Write(0x464E5442);
+            @out.Write(0x10);
+            @out.Write(0x4);
+            @out.Write(0x10000);
 
             // FIMG Construction
-            Out.Write(0x46494D47);
-            var FIMG_ChunkSizeOffset = Out.BaseStream.Position;
-            Out.Write(0x0);
-            FAT.Entries.ForEach(Entry => Out.Write(Entry.Buffer));
-            var ChunkSize = (uint) (Out.BaseStream.Position - FIMG_ChunkSizeOffset + 0x4);
-            var FileSize = (uint) Out.BaseStream.Position;
-            Out.BaseStream.Position = FIMG_ChunkSizeOffset;
-            Out.Write(ChunkSize);
-            Out.Seek(0x8, SeekOrigin.Begin);
-            Out.Write(FileSize);
-            Out.Close();
+            @out.Write(0x46494D47);
+            var fimgChunkSizeOffset = @out.BaseStream.Position;
+            @out.Write(0x0);
+            fat.entries.ForEach(entry => @out.Write(entry.buffer));
+            var chunkSize = (uint) (@out.BaseStream.Position - fimgChunkSizeOffset + 0x4);
+            var fileSize = (uint) @out.BaseStream.Position;
+            @out.BaseStream.Position = fimgChunkSizeOffset;
+            @out.Write(chunkSize);
+            @out.Seek(0x8, SeekOrigin.Begin);
+            @out.Write(fileSize);
+            @out.Close();
 
-            return Buffer.ToArray();
+            return buffer.ToArray();
         }
     }
 
-    public class FATB
-    {
-        public FATB(BinaryReader Binary)
-        {
-            Entries = new List<FATB_Entry>();
-            Binary.BaseStream.Position = 0x18;
-            var FileCount = Binary.ReadUInt16();
-            Binary.BaseStream.Position += 0x2;
-            for (var i = 0; i < FileCount; ++i)
-                Entries.Add(new FATB_Entry(Binary));
-            Binary.BaseStream.Position += 0x18;
-            var FIMG_Base = (uint) Binary.BaseStream.Position;
-            Entries.ForEach(Entry => Entry.ReadBuffer(Binary, FIMG_Base));
+    public class Fatb {
+        public Fatb(BinaryReader binary) {
+            entries = new List<FatbEntry>();
+            binary.BaseStream.Position = 0x18;
+            var fileCount = binary.ReadUInt16();
+            binary.BaseStream.Position += 0x2;
+            for (var i = 0; i < fileCount; ++i)
+                entries.Add(new FatbEntry(binary));
+            binary.BaseStream.Position += 0x18;
+            var fimgBase = (uint) binary.BaseStream.Position;
+            entries.ForEach(entry => entry.readBuffer(binary, fimgBase));
         }
 
-        public List<FATB_Entry> Entries { get; }
+        public List<FatbEntry> entries { get; }
     }
 
-    public class FATB_Entry
-    {
-        private readonly long Dest_Begin;
-        private readonly long Dest_End;
+    public class FatbEntry {
+        private readonly long _destBegin;
+        private readonly long _destEnd;
 
-        public FATB_Entry(BinaryReader Binary)
-        {
-            Dest_Begin = Binary.ReadUInt32();
-            Dest_End = Binary.ReadUInt32();
+        public FatbEntry(BinaryReader binary) {
+            _destBegin = binary.ReadUInt32();
+            _destEnd = binary.ReadUInt32();
         }
 
-        public FATB_Entry(byte[] Buffer)
-        {
-            this.Buffer = Buffer;
+        public FatbEntry(byte[] buffer) {
+            this.buffer = buffer;
         }
 
-        public byte[] Buffer { get; set; }
+        public byte[] buffer { get; set; }
 
-        public void ReadBuffer(BinaryReader Binary, uint FIMG_Base)
-        {
-            var Origin = Binary.BaseStream.Position;
-            Binary.BaseStream.Position = Dest_Begin + FIMG_Base;
-            Buffer = Binary.ReadBytes((int) (Dest_End - Dest_Begin));
-            Binary.BaseStream.Position = Origin;
+        public void readBuffer(BinaryReader binary, uint fimgBase) {
+            var origin = binary.BaseStream.Position;
+            binary.BaseStream.Position = _destBegin + fimgBase;
+            buffer = binary.ReadBytes((int) (_destEnd - _destBegin));
+            binary.BaseStream.Position = origin;
         }
     }
 }

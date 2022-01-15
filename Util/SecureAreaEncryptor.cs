@@ -1,15 +1,12 @@
 ﻿using System;
 
-namespace NitroSharp.Util
-{
-    public class SecureAreaEncryptor
-    {
+namespace NitroSharp.Util {
+    public class SecureAreaEncryptor {
         // ARM9 decryption check values
-        private const uint MAGIC30 = 0x72636E65;
-        private const uint MAGIC34 = 0x6A624F79;
+        private const uint Magic30 = 0x72636E65;
+        private const uint Magic34 = 0x6A624F79;
 
-        private static readonly byte[] encr_data =
-        {
+        private static readonly byte[] EncrData = {
             0x99, 0xD5, 0x20, 0x5F, 0x57, 0x44, 0xF5, 0xB9, 0x6E, 0x19, 0xA4, 0xD9, 0x9E, 0x6A, 0x5A, 0x94,
             0xD8, 0xAE, 0xF1, 0xEB, 0x41, 0x75, 0xE2, 0x3A, 0x93, 0x82, 0xD0, 0x32, 0x33, 0xEE, 0x31, 0xD5,
             0xCC, 0x57, 0x61, 0x9A, 0x37, 0x06, 0xA2, 0x1B, 0x79, 0x39, 0x72, 0xF5, 0x55, 0xAE, 0xF6, 0xBE,
@@ -273,17 +270,16 @@ namespace NitroSharp.Util
             0x96, 0xE7, 0xC4, 0x18, 0x5F, 0xAD, 0xF5, 0x19
         };
 
-        private readonly uint[] arg2 = new uint[3];
-        private readonly uint[] card_hash = new uint[0x412];
-        private uint global3_rand1;
+        private readonly uint[] _arg2 = new uint[3];
+        private readonly uint[] _cardHash = new uint[0x412];
+        private uint _global3Rand1;
 
-        private uint global3_rand3;
+        private uint _global3Rand3;
 
         //int cardheader_devicetype = 0;
-        private uint global3_x00, global3_x04; // RTC value
+        private uint _global3X00, _global3X04; // RTC value
 
-        private uint Lookup(uint[] magic, uint v)
-        {
+        private uint lookup(uint[] magic, uint v) {
             var a = (v >> 24) & 0xFF;
             var b = (v >> 16) & 0xFF;
             var c = (v >> 8) & 0xFF;
@@ -297,15 +293,13 @@ namespace NitroSharp.Util
             return d + (c ^ (b + a));
         }
 
-        private void Encrypt(uint[] magic, ref uint arg1, ref uint arg2)
-        {
+        private void encrypt(uint[] magic, ref uint arg1, ref uint arg2) {
             uint a, b, c;
             a = arg1;
             b = arg2;
-            for (var i = 0; i < 16; i++)
-            {
+            for (var i = 0; i < 16; i++) {
                 c = magic[i] ^ a;
-                a = b ^ Lookup(magic, c);
+                a = b ^ lookup(magic, c);
                 b = c;
             }
 
@@ -313,15 +307,13 @@ namespace NitroSharp.Util
             arg1 = b ^ magic[17];
         }
 
-        private void Decrypt(uint[] magic, ref uint arg1, ref uint arg2)
-        {
+        private void decrypt(uint[] magic, ref uint arg1, ref uint arg2) {
             uint a, b, c;
             a = arg1;
             b = arg2;
-            for (var i = 17; i > 1; i--)
-            {
+            for (var i = 17; i > 1; i--) {
                 c = magic[i] ^ a;
-                a = b ^ Lookup(magic, c);
+                a = b ^ lookup(magic, c);
                 b = c;
             }
 
@@ -329,29 +321,24 @@ namespace NitroSharp.Util
             arg2 = a ^ magic[1];
         }
 
-        private void Encrypt(uint[] magic, ref ulong cmd)
-        {
+        private void encrypt(uint[] magic, ref ulong cmd) {
             var arg1 = (uint) (cmd >> 32);
             var arg2 = (uint) (cmd >> 0);
-            Encrypt(magic, ref arg1, ref arg2);
+            encrypt(magic, ref arg1, ref arg2);
             cmd = ((ulong) arg1 << 32) + arg2;
         }
 
-        private void Decrypt(uint[] magic, ref ulong cmd)
-        {
+        private void decrypt(uint[] magic, ref ulong cmd) {
             var arg1 = (uint) (cmd >> 32);
             var arg2 = (uint) (cmd >> 0);
-            Decrypt(magic, ref arg1, ref arg2);
+            decrypt(magic, ref arg1, ref arg2);
             cmd = ((ulong) arg1 << 32) + arg2;
         }
 
-        private void UpdateHashtable(uint[] magic, byte[] arg1)
-        {
-            for (var j = 0; j < 18; j++)
-            {
+        private void updateHashtable(uint[] magic, byte[] arg1) {
+            for (var j = 0; j < 18; j++) {
                 uint r3 = 0;
-                for (var i = 0; i < 4; i++)
-                {
+                for (var i = 0; i < 4; i++) {
                     r3 <<= 8;
                     r3 |= arg1[(j * 4 + i) & 7];
                 }
@@ -361,76 +348,68 @@ namespace NitroSharp.Util
 
             uint tmp1 = 0;
             uint tmp2 = 0;
-            for (var i = 0; i < 18; i += 2)
-            {
-                Encrypt(magic, ref tmp1, ref tmp2);
+            for (var i = 0; i < 18; i += 2) {
+                encrypt(magic, ref tmp1, ref tmp2);
                 magic[i + 0] = tmp1;
                 magic[i + 1] = tmp2;
             }
 
-            for (var i = 0; i < 0x400; i += 2)
-            {
-                Encrypt(magic, ref tmp1, ref tmp2);
+            for (var i = 0; i < 0x400; i += 2) {
+                encrypt(magic, ref tmp1, ref tmp2);
                 magic[i + 18 + 0] = tmp1;
                 magic[i + 18 + 1] = tmp2;
             }
         }
 
-        private void Init2(uint[] magic, uint[] a /*[3]*/)
-        {
-            Encrypt(magic, ref a[2], ref a[1]);
-            Encrypt(magic, ref a[1], ref a[0]);
+        private void init2(uint[] magic, uint[] a /*[3]*/) {
+            encrypt(magic, ref a[2], ref a[1]);
+            encrypt(magic, ref a[1], ref a[0]);
             var ab = new byte[8];
             Array.Copy(BitConverter.GetBytes(a[0]), 0, ab, 0, 4);
             Array.Copy(BitConverter.GetBytes(a[1]), 0, ab, 4, 4);
-            UpdateHashtable(magic, ab);
+            updateHashtable(magic, ab);
         }
 
-        private void Init1(uint cardheader_gamecode)
-        {
-            for (var i = 0; i < 1024 + 18; i++) card_hash[i] = BitConverter.ToUInt32(encr_data, 4 * i);
-            arg2[0] = cardheader_gamecode;
-            arg2[1] = cardheader_gamecode >> 1;
-            arg2[2] = cardheader_gamecode << 1;
-            Init2(card_hash, arg2);
-            Init2(card_hash, arg2);
+        private void init1(uint cardheaderGamecode) {
+            for (var i = 0; i < 1024 + 18; i++) _cardHash[i] = BitConverter.ToUInt32(EncrData, 4 * i);
+            _arg2[0] = cardheaderGamecode;
+            _arg2[1] = cardheaderGamecode >> 1;
+            _arg2[2] = cardheaderGamecode << 1;
+            init2(_cardHash, _arg2);
+            init2(_cardHash, _arg2);
         }
 
-        private void Init0(uint cardheader_gamecode)
-        {
-            Init1(cardheader_gamecode);
-            Encrypt(card_hash, ref global3_x04, ref global3_x00);
-            global3_rand1 = global3_x00 ^ global3_x04; // more RTC
-            global3_rand3 = global3_x04 ^ 0x0380FEB2;
-            Encrypt(card_hash, ref global3_rand3, ref global3_rand1);
+        private void init0(uint cardheaderGamecode) {
+            init1(cardheaderGamecode);
+            encrypt(_cardHash, ref _global3X04, ref _global3X00);
+            _global3Rand1 = _global3X00 ^ _global3X04; // more RTC
+            _global3Rand3 = _global3X04 ^ 0x0380FEB2;
+            encrypt(_cardHash, ref _global3Rand3, ref _global3Rand1);
         }
 
 
-        public static void DecryptSecureArea(uint cardheader_gamecode, byte[] data)
-        {
+        public static void decryptSecureArea(uint cardheaderGamecode, byte[] data) {
             var dec = new SecureAreaEncryptor();
-            dec.DecryptArm9(cardheader_gamecode, data);
+            dec.decryptArm9(cardheaderGamecode, data);
         }
 
-        public static void EncryptSecureArea(uint cardheader_gamecode, byte[] data)
-        {
+        public static void encryptSecureArea(uint cardheaderGamecode, byte[] data) {
             var enc = new SecureAreaEncryptor();
-            enc.EncryptArm9(cardheader_gamecode, data);
+            enc.encryptArm9(cardheaderGamecode, data);
         }
 
-        public void DecryptArm9(uint cardheader_gamecode, byte[] data)
-        {
+        public void decryptArm9(uint cardheaderGamecode, byte[] data) {
             var p = new uint[data.Length / 4];
             for (var i = 0; i < p.Length; i++) p[i] = BitConverter.ToUInt32(data, 4 * i);
 
-            Init1(cardheader_gamecode);
-            Decrypt(card_hash, ref p[1], ref p[0]);
-            arg2[1] <<= 1;
-            arg2[2] >>= 1;
-            Init2(card_hash, arg2);
-            Decrypt(card_hash, ref p[1], ref p[0]);
+            init1(cardheaderGamecode);
+            decrypt(_cardHash, ref p[1], ref p[0]);
+            _arg2[1] <<= 1;
+            _arg2[2] >>= 1;
+            init2(_cardHash, _arg2);
+            decrypt(_cardHash, ref p[1], ref p[0]);
 
-            if (p[0] != MAGIC30 || p[1] != MAGIC34)
+            if (p[0] != Magic30 || p[1] != Magic34)
                 // "Decryption failed!"
                 return;
 
@@ -438,9 +417,8 @@ namespace NitroSharp.Util
             p[pOffset++] = 0xE7FFDEFF;
             p[pOffset++] = 0xE7FFDEFF;
             uint size = 0x800 - 8;
-            while (size > 0)
-            {
-                Decrypt(card_hash, ref p[pOffset + 1], ref p[pOffset]);
+            while (size > 0) {
+                decrypt(_cardHash, ref p[pOffset + 1], ref p[pOffset]);
                 pOffset += 2;
                 size -= 8;
             }
@@ -450,8 +428,7 @@ namespace NitroSharp.Util
                 data[4 * i + j] = (byte) (p[i] >> (8 * j));
         }
 
-        public void EncryptArm9(uint cardheader_gamecode, byte[] data)
-        {
+        public void encryptArm9(uint cardheaderGamecode, byte[] data) {
             var p = new uint[0x800 / 4];
             for (var i = 0; i < p.Length; i++) p[i] = BitConverter.ToUInt32(data, 4 * i);
             if (p[0] != 0xE7FFDEFF || p[1] != 0xE7FFDEFF)
@@ -460,27 +437,26 @@ namespace NitroSharp.Util
 
             var pOffset = 2;
 
-            Init1(cardheader_gamecode);
+            init1(cardheaderGamecode);
 
-            arg2[1] <<= 1;
-            arg2[2] >>= 1;
+            _arg2[1] <<= 1;
+            _arg2[2] >>= 1;
 
-            Init2(card_hash, arg2);
+            init2(_cardHash, _arg2);
 
             uint size = 0x800 - 8;
-            while (size > 0)
-            {
-                Encrypt(card_hash, ref p[pOffset + 1], ref p[pOffset]);
+            while (size > 0) {
+                encrypt(_cardHash, ref p[pOffset + 1], ref p[pOffset]);
                 pOffset += 2;
                 size -= 8;
             }
 
             // place header
-            p[0] = MAGIC30;
-            p[1] = MAGIC34;
-            Encrypt(card_hash, ref p[1], ref p[0]);
-            Init1(cardheader_gamecode);
-            Encrypt(card_hash, ref p[1], ref p[0]);
+            p[0] = Magic30;
+            p[1] = Magic34;
+            encrypt(_cardHash, ref p[1], ref p[0]);
+            init1(cardheaderGamecode);
+            encrypt(_cardHash, ref p[1], ref p[0]);
 
             for (var i = 0; i < p.Length; i++)
             for (var j = 0; j < 4; j++)

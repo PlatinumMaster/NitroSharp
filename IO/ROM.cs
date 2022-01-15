@@ -4,306 +4,294 @@ using System.Linq;
 using System.Text;
 using NitroSharp.Formats.ROM;
 
-namespace NitroSharp.IO
-{
-    public class ROM
-    {
-        public ARM7 ARM7Binary;
-        public ARM7i ARM7iBinary;
-        public List<NitroOverlay> ARM7Overlays;
-        public NitroOverlayTable ARM7OverlayTable;
-        public ARM9 ARM9Binary;
-        public ARM9i ARM9iBinary;
-        public List<NitroOverlay> ARM9Overlays;
-        public NitroOverlayTable ARM9OverlayTable;
-        public NitroBanner Banner;
-        public NitroByteWrapper BlockHashtable;
-        public NitroByteWrapper DigestNTR;
-        public NitroByteWrapper DigestTWL;
-        public NitroByteWrapper ModcryptArea;
-        public NitroByteWrapper ModcryptArea2;
-        public NitroByteWrapper SectorHashtable;
+namespace NitroSharp.IO {
+    public class Rom {
+        public Arm7 arm7Binary;
+        public Arm7I arm7IBinary;
+        public List<NitroOverlay> arm7Overlays;
+        public NitroOverlayTable arm7OverlayTable;
+        public Arm9 arm9Binary;
+        public Arm9I arm9IBinary;
+        public List<NitroOverlay> arm9Overlays;
+        public NitroOverlayTable arm9OverlayTable;
+        public NitroBanner banner;
+        public NitroByteWrapper blockHashtable;
+        public NitroByteWrapper digestNtr;
+        public NitroByteWrapper digestTwl;
+        public NitroByteWrapper modcryptArea;
+        public NitroByteWrapper modcryptArea2;
+        public NitroByteWrapper sectorHashtable;
 
-        public ROM(string Path)
-        {
-            var Binary = new BinaryReader(File.Open(Path, FileMode.Open), Encoding.ASCII);
-            Dictionary<uint, uint> StartOffsets = new Dictionary<uint, uint>(),
-                EndOffsets = new Dictionary<uint, uint>();
-            ARM9Overlays = new List<NitroOverlay>();
-            ARM7Overlays = new List<NitroOverlay>();
-            Root = new NitroDirectory("/", 0xF000, null);
-            Header = new NitroHeader(Binary);
+        public Rom(string path) {
+            var binary = new BinaryReader(File.Open(path, FileMode.Open), Encoding.ASCII);
+            Dictionary<uint, uint> startOffsets = new Dictionary<uint, uint>(),
+                endOffsets = new Dictionary<uint, uint>();
+            arm9Overlays = new List<NitroOverlay>();
+            arm7Overlays = new List<NitroOverlay>();
+            root = new NitroDirectory("/", 0xF000, null);
+            header = new NitroHeader(binary);
 
-            Binary.BaseStream.Position = Header.FileAllocationTableOffset;
-            for (uint i = 0; i < Header.FileAllocationTableSize / 8; ++i)
-            {
-                StartOffsets.Add(i, Binary.ReadUInt32());
-                EndOffsets.Add(i, Binary.ReadUInt32());
+            binary.BaseStream.Position = header.fileAllocationTableOffset;
+            for (uint i = 0; i < header.fileAllocationTableSize / 8; ++i) {
+                startOffsets.Add(i, binary.ReadUInt32());
+                endOffsets.Add(i, binary.ReadUInt32());
             }
 
-            Binary.BaseStream.Position = Header.FileNameTableOffset;
-            NitroDirectory.ParseDirectory(Root, Binary, Binary.BaseStream.Position, StartOffsets, EndOffsets);
+            binary.BaseStream.Position = header.fileNameTableOffset;
+            NitroDirectory.parseDirectory(root, binary, binary.BaseStream.Position, startOffsets, endOffsets);
 
-            for (uint i = 0; i < Header.ARM9OverlayTableSize / 0x20; ++i)
-            {
-                ARM9Overlays.Add(new NitroOverlay(StartOffsets[i], EndOffsets[i] - StartOffsets[i], Binary));
-                ARM9Overlays[^1].GetFileFromROMStream(Binary);
+            for (uint i = 0; i < header.arm9OverlayTableSize / 0x20; ++i) {
+                arm9Overlays.Add(new NitroOverlay(startOffsets[i], endOffsets[i] - startOffsets[i], binary));
+                arm9Overlays[^1].getFileFromRomStream(binary);
             }
 
-            for (uint i = 0; i < Header.ARM7OverlayTableSize / 0x20; ++i)
-            {
-                ARM7Overlays.Add(new NitroOverlay(StartOffsets[i + Header.ARM7OverlayTableSize],
-                    EndOffsets[i + Header.ARM7OverlayTableSize] - StartOffsets[i + Header.ARM7OverlayTableSize],
-                    Binary));
-                ARM7Overlays[^1].GetFileFromROMStream(Binary);
+            for (uint i = 0; i < header.arm7OverlayTableSize / 0x20; ++i) {
+                arm7Overlays.Add(new NitroOverlay(startOffsets[i + header.arm7OverlayTableSize],
+                    endOffsets[i + header.arm7OverlayTableSize] - startOffsets[i + header.arm7OverlayTableSize],
+                    binary));
+                arm7Overlays[^1].getFileFromRomStream(binary);
             }
 
-            ARM9OverlayTable =
-                new NitroOverlayTable(Header.ARM9OverlayTableOffset, Header.ARM9OverlayTableSize, Binary);
-            ARM7OverlayTable =
-                new NitroOverlayTable(Header.ARM7OverlayTableOffset, Header.ARM7OverlayTableSize, Binary);
-            ARM9Binary = new ARM9(Header.ARM9EntryAddress, Header.ARM9Offset, Header.ARM9Size, Header.ARM9RAMAddress);
-            ARM7Binary = new ARM7(Header.ARM7EntryAddress, Header.ARM7Offset, Header.ARM7Size, Header.ARM7RAMAddress);
-            Banner = new NitroBanner(Header.BannerOffset, Header.BannerSize);
+            arm9OverlayTable =
+                new NitroOverlayTable(header.arm9OverlayTableOffset, header.arm9OverlayTableSize, binary);
+            arm7OverlayTable =
+                new NitroOverlayTable(header.arm7OverlayTableOffset, header.arm7OverlayTableSize, binary);
+            arm9Binary = new Arm9(header.arm9EntryAddress, header.arm9Offset, header.arm9Size, header.arm9RamAddress);
+            arm7Binary = new Arm7(header.arm7EntryAddress, header.arm7Offset, header.arm7Size, header.arm7RamAddress);
+            banner = new NitroBanner(header.bannerOffset, header.bannerSize);
 
-            ARM9OverlayTable.GetFileFromROMStream(Binary);
-            ARM7OverlayTable.GetFileFromROMStream(Binary);
-            Banner.GetFileFromROMStream(Binary);
-            ARM9Binary.GetFileFromROMStream(Binary);
-            ARM7Binary.GetFileFromROMStream(Binary);
+            arm9OverlayTable.getFileFromRomStream(binary);
+            arm7OverlayTable.getFileFromRomStream(binary);
+            banner.getFileFromRomStream(binary);
+            arm9Binary.getFileFromRomStream(binary);
+            arm7Binary.getFileFromRomStream(binary);
 
-            if (Header.HeaderSize > 0x200 && (Header.UnitCode & 2) > 0)
-            {
-                ARM9iBinary = new ARM9i(Header.ARM9iEntryAddress, Header.ARM9iOffset, Header.ARM9iSize,
-                    Header.ARM9iRAMAddress);
-                ARM7iBinary = new ARM7i(Header.ARM7iEntryAddress, Header.ARM7iOffset, Header.ARM7iSize,
-                    Header.ARM7iRAMAddress);
-                SectorHashtable =
-                    new NitroByteWrapper(Header.SectorHashtableOffset, Header.SectorHashtableSize, Binary);
-                BlockHashtable = new NitroByteWrapper(Header.BlockHashtableOffset, Header.BlockHashtableSize, Binary);
-                DigestNTR = new NitroByteWrapper(Header.DigestNTROffset, Header.DigestNTRSize, Binary);
-                DigestTWL = new NitroByteWrapper(Header.DigestTWLOffset, Header.DigestTWLSize, Binary);
-                ModcryptArea = new NitroByteWrapper(Header.ModcryptOffset, Header.ModcryptSize, Binary);
-                ModcryptArea2 = new NitroByteWrapper(Header.Modcrypt2Offset, Header.Modcrypt2Size, Binary);
+            if (header.headerSize > 0x200 && (header.unitCode & 2) > 0) {
+                arm9IBinary = new Arm9I(header.arm9IEntryAddress, header.arm9IOffset, header.arm9ISize,
+                    header.arm9IRamAddress);
+                arm7IBinary = new Arm7I(header.arm7IEntryAddress, header.arm7IOffset, header.arm7ISize,
+                    header.arm7IRamAddress);
+                sectorHashtable =
+                    new NitroByteWrapper(header.sectorHashtableOffset, header.sectorHashtableSize, binary);
+                blockHashtable = new NitroByteWrapper(header.blockHashtableOffset, header.blockHashtableSize, binary);
+                digestNtr = new NitroByteWrapper(header.digestNtrOffset, header.digestNtrSize, binary);
+                digestTwl = new NitroByteWrapper(header.digestTwlOffset, header.digestTwlSize, binary);
+                modcryptArea = new NitroByteWrapper(header.modcryptOffset, header.modcryptSize, binary);
+                modcryptArea2 = new NitroByteWrapper(header.modcrypt2Offset, header.modcrypt2Size, binary);
 
-                SectorHashtable.GetFileFromROMStream(Binary);
-                BlockHashtable.GetFileFromROMStream(Binary);
-                ARM9iBinary.GetFileFromROMStream(Binary);
-                ARM7iBinary.GetFileFromROMStream(Binary);
-                DigestNTR.GetFileFromROMStream(Binary);
-                DigestTWL.GetFileFromROMStream(Binary);
-                ModcryptArea.GetFileFromROMStream(Binary);
-                ModcryptArea2.GetFileFromROMStream(Binary);
+                sectorHashtable.getFileFromRomStream(binary);
+                blockHashtable.getFileFromRomStream(binary);
+                arm9IBinary.getFileFromRomStream(binary);
+                arm7IBinary.getFileFromRomStream(binary);
+                digestNtr.getFileFromRomStream(binary);
+                digestTwl.getFileFromRomStream(binary);
+                modcryptArea.getFileFromRomStream(binary);
+                modcryptArea2.getFileFromRomStream(binary);
             }
         }
 
-        public NitroDirectory Root { get; set; }
-        public NitroHeader Header { get; set; }
+        public NitroDirectory root { get; set; }
+        public NitroHeader header { get; set; }
 
-        public void Serialize(string Path)
-        {
-            List<uint> ARM9OverlayStartOffsets = new List<uint>(),
-                ARM7OverlayStartOffsets = new List<uint>(),
-                ARM9OverlayEndOffsets = new List<uint>(),
-                ARM7OverlayEndOffsets = new List<uint>();
+        public void serialize(string path) {
+            List<uint> arm9OverlayStartOffsets = new List<uint>(),
+                arm7OverlayStartOffsets = new List<uint>(),
+                arm9OverlayEndOffsets = new List<uint>(),
+                arm7OverlayEndOffsets = new List<uint>();
 
             // Temporary
-            Header.HeaderSize = 0x200;
+            header.headerSize = 0x200;
 
-            var Binary = new BinaryWriter(File.Create(Path));
-            Binary.Write(new byte[Header.HeaderSize]);
+            var binary = new BinaryWriter(File.Create(path));
+            binary.Write(new byte[header.headerSize]);
 
             // Write the ARM9...
-            Header.ARM9Offset = (uint) Binary.BaseStream.Position;
-            Header.ARM9Size = ARM9Binary.Size;
-            Binary.Write(ARM9Binary.Data);
+            header.arm9Offset = (uint) binary.BaseStream.Position;
+            header.arm9Size = arm9Binary.size;
+            binary.Write(arm9Binary.data);
 
-            Header.ARM9OverlayTableOffset = (uint) Binary.BaseStream.Position;
-            Header.ARM9OverlayTableSize = ARM9OverlayTable.Size;
-            Binary.Write(ARM9OverlayTable.Data);
+            header.arm9OverlayTableOffset = (uint) binary.BaseStream.Position;
+            header.arm9OverlayTableSize = arm9OverlayTable.size;
+            binary.Write(arm9OverlayTable.data);
 
-            foreach (var Overlay in ARM9Overlays)
-            {
-                ARM9OverlayStartOffsets.Add((uint) Binary.BaseStream.Position);
-                Binary.Write(Overlay.Data);
-                ARM9OverlayEndOffsets.Add((uint) Binary.BaseStream.Position);
+            foreach (var overlay in arm9Overlays) {
+                arm9OverlayStartOffsets.Add((uint) binary.BaseStream.Position);
+                binary.Write(overlay.data);
+                arm9OverlayEndOffsets.Add((uint) binary.BaseStream.Position);
             }
 
             // Now the ARM7...
-            Header.ARM7Offset = (uint) Binary.BaseStream.Position;
-            Header.ARM7Size = ARM7Binary.Size;
-            Binary.Write(ARM7Binary.Data);
+            header.arm7Offset = (uint) binary.BaseStream.Position;
+            header.arm7Size = arm7Binary.size;
+            binary.Write(arm7Binary.data);
 
-            Header.ARM7OverlayTableOffset = (uint) Binary.BaseStream.Position;
-            Header.ARM7OverlayTableSize = ARM7OverlayTable.Size;
-            Binary.Write(ARM7OverlayTable.Data);
+            header.arm7OverlayTableOffset = (uint) binary.BaseStream.Position;
+            header.arm7OverlayTableSize = arm7OverlayTable.size;
+            binary.Write(arm7OverlayTable.data);
 
-            foreach (var Overlay in ARM7Overlays)
-            {
-                ARM9OverlayStartOffsets.Add((uint) Binary.BaseStream.Position);
-                Binary.Write(Overlay.Data);
-                ARM9OverlayEndOffsets.Add((uint) Binary.BaseStream.Position);
+            foreach (var overlay in arm7Overlays) {
+                arm9OverlayStartOffsets.Add((uint) binary.BaseStream.Position);
+                binary.Write(overlay.data);
+                arm9OverlayEndOffsets.Add((uint) binary.BaseStream.Position);
             }
 
             // File Name Table
-            Header.FileNameTableOffset = (uint) Binary.BaseStream.Position;
-            NitroDirectory.ConstructFileNameTable(Binary, Root);
-            Header.FileNameTableSize = (uint) (Binary.BaseStream.Position - Header.FileNameTableOffset);
+            header.fileNameTableOffset = (uint) binary.BaseStream.Position;
+            NitroDirectory.constructFileNameTable(binary, root);
+            header.fileNameTableSize = (uint) (binary.BaseStream.Position - header.fileNameTableOffset);
 
             // File Allocation Table
-            var FileImageOffset = (ulong) (0x4000 +
-                                           +ARM9Binary.Size + ARM9OverlayTable.Size +
-                                           ARM9Overlays.Aggregate(0U, (Acc, E) => Acc + E.Size)
-                                           + ARM7Binary.Size + ARM7OverlayTable.Size +
-                                           ARM7Overlays.Aggregate(0U, (Acc, E) => Acc + E.Size)
-                                           + ARM9Overlays.Count * 8 + ARM7Overlays.Count * 8);
-            Header.FileAllocationTableOffset = (uint) Binary.BaseStream.Position;
-            NitroDirectory.UpdateBaseOffset((uint) FileImageOffset);
-            NitroDirectory.UpdateOffsets(Root);
-            NitroDirectory.ConstructFileAllocationTable(Binary, Root, ARM9OverlayStartOffsets, ARM9OverlayEndOffsets,
-                ARM7OverlayStartOffsets, ARM7OverlayEndOffsets);
-            Header.FileAllocationTableSize = (uint) (Binary.BaseStream.Position - Header.FileAllocationTableOffset);
+            var fileImageOffset = (ulong) (0x4000 +
+                                           +arm9Binary.size + arm9OverlayTable.size +
+                                           arm9Overlays.Aggregate(0U, (acc, e) => acc + e.size)
+                                           + arm7Binary.size + arm7OverlayTable.size +
+                                           arm7Overlays.Aggregate(0U, (acc, e) => acc + e.size)
+                                           + arm9Overlays.Count * 8 + arm7Overlays.Count * 8);
+            header.fileAllocationTableOffset = (uint) binary.BaseStream.Position;
+            NitroDirectory.updateBaseOffset((uint) fileImageOffset);
+            NitroDirectory.updateOffsets(root);
+            NitroDirectory.constructFileAllocationTable(binary, root, arm9OverlayStartOffsets, arm9OverlayEndOffsets,
+                arm7OverlayStartOffsets, arm7OverlayEndOffsets);
+            header.fileAllocationTableSize = (uint) (binary.BaseStream.Position - header.fileAllocationTableOffset);
 
             // Banner
-            Header.BannerOffset = (uint) Binary.BaseStream.Position;
-            Header.BannerSize = Banner.Size;
-            Binary.Write(Banner.FileData);
+            header.bannerOffset = (uint) binary.BaseStream.Position;
+            header.bannerSize = banner.size;
+            binary.Write(banner.fileData);
 
             // The File Image
-            NitroDirectory.WriteFileImageTable(Binary, Root);
-            Header.ROMSize = (uint) Binary.BaseStream.Position;
+            NitroDirectory.writeFileImageTable(binary, root);
+            header.romSize = (uint) binary.BaseStream.Position;
 
-            if (Header.HeaderSize > 0x200)
-            {
+            if (header.headerSize > 0x200) {
                 // DSi Binary time...
 
                 // ARM9i...
-                Header.ARM9iOffset = (uint) Binary.BaseStream.Position;
-                Header.ARM9iSize = ARM9iBinary.Size;
-                Binary.Write(ARM9iBinary.Data);
+                header.arm9IOffset = (uint) binary.BaseStream.Position;
+                header.arm9ISize = arm9IBinary.size;
+                binary.Write(arm9IBinary.data);
 
                 // ARM7i...
-                Header.ARM7iOffset = (uint) Binary.BaseStream.Position;
-                Header.ARM7iSize = ARM7iBinary.Size;
-                Binary.Write(ARM7iBinary.Data);
+                header.arm7IOffset = (uint) binary.BaseStream.Position;
+                header.arm7ISize = arm7IBinary.size;
+                binary.Write(arm7IBinary.data);
             }
 
             // Calculate the CRC.
-            NitroHeader.CalculateCRC(Header);
+            NitroHeader.calculateCrc(header);
             // Header time!
-            Binary.BaseStream.Position = 0x0;
+            binary.BaseStream.Position = 0x0;
 
-            Binary.Write(Header.Title.Take(0xC).ToArray());
-            Binary.Write(Header.GameCode.Take(0x4).ToArray());
-            Binary.Write(Header.MakerCode.Take(0x2).ToArray());
-            Binary.Write(Header.UnitCode);
-            Binary.Write(Header.EncryptionSeed);
-            Binary.Write(Header.DeviceCapacity);
-            Binary.Write(new byte[7]);
-            Binary.Write(Header.TWLInternalFlags);
-            Binary.Write(Header.PermitsFlags);
-            Binary.Write(Header.ROMVersion);
-            Binary.Write(Header.InternalFlags);
-            Binary.Write(Header.ARM9Offset);
-            Binary.Write(Header.ARM9EntryAddress);
-            Binary.Write(Header.ARM9RAMAddress);
-            Binary.Write(Header.ARM9Size);
-            Binary.Write(Header.ARM7Offset);
-            Binary.Write(Header.ARM7EntryAddress);
-            Binary.Write(Header.ARM7RAMAddress);
-            Binary.Write(Header.ARM7Size);
-            Binary.Write(Header.FileNameTableOffset);
-            Binary.Write(Header.FileNameTableSize);
-            Binary.Write(Header.FileAllocationTableOffset);
-            Binary.Write(Header.FileAllocationTableSize);
-            Binary.Write(Header.ARM9OverlayTableOffset);
-            Binary.Write(Header.ARM9OverlayTableSize);
-            Binary.Write(Header.ARM7OverlayTableOffset);
-            Binary.Write(Header.ARM7OverlayTableSize);
-            Binary.Write(Header.FlagsRead);
-            Binary.Write(Header.FlagsInit);
-            Binary.Write(Header.BannerOffset);
-            Binary.Write(Header.SecureCRC16);
-            Binary.Write(Header.ROMTimeout);
-            Binary.Write(Header.ARM9Autoload);
-            Binary.Write(Header.ARM7Autoload);
-            Binary.Write(Header.SecureAreaDisable);
-            Binary.Write(Header.ROMSize);
-            Binary.Write(Header.HeaderSize);
-            Binary.Write(Header.Reserved2);
-            Binary.Write(Header.Logo);
-            Binary.Write(Header.LogoCRC16);
-            Binary.Write(Header.HeaderCRC16);
-            Binary.Write(Header.DebugROMOffset);
-            Binary.Write(Header.DebugSize);
-            Binary.Write(Header.DebugRAMAddress);
-            Binary.Write(Header.Reserved3);
-            Binary.Write(Header.Reserved4);
+            binary.Write(header.title.Take(0xC).ToArray());
+            binary.Write(header.gameCode.Take(0x4).ToArray());
+            binary.Write(header.makerCode.Take(0x2).ToArray());
+            binary.Write(header.unitCode);
+            binary.Write(header.encryptionSeed);
+            binary.Write(header.deviceCapacity);
+            binary.Write(new byte[7]);
+            binary.Write(header.twlInternalFlags);
+            binary.Write(header.permitsFlags);
+            binary.Write(header.romVersion);
+            binary.Write(header.internalFlags);
+            binary.Write(header.arm9Offset);
+            binary.Write(header.arm9EntryAddress);
+            binary.Write(header.arm9RamAddress);
+            binary.Write(header.arm9Size);
+            binary.Write(header.arm7Offset);
+            binary.Write(header.arm7EntryAddress);
+            binary.Write(header.arm7RamAddress);
+            binary.Write(header.arm7Size);
+            binary.Write(header.fileNameTableOffset);
+            binary.Write(header.fileNameTableSize);
+            binary.Write(header.fileAllocationTableOffset);
+            binary.Write(header.fileAllocationTableSize);
+            binary.Write(header.arm9OverlayTableOffset);
+            binary.Write(header.arm9OverlayTableSize);
+            binary.Write(header.arm7OverlayTableOffset);
+            binary.Write(header.arm7OverlayTableSize);
+            binary.Write(header.flagsRead);
+            binary.Write(header.flagsInit);
+            binary.Write(header.bannerOffset);
+            binary.Write(header.secureCrc16);
+            binary.Write(header.romTimeout);
+            binary.Write(header.arm9Autoload);
+            binary.Write(header.arm7Autoload);
+            binary.Write(header.secureAreaDisable);
+            binary.Write(header.romSize);
+            binary.Write(header.headerSize);
+            binary.Write(header.reserved2);
+            binary.Write(header.logo);
+            binary.Write(header.logoCrc16);
+            binary.Write(header.headerCrc16);
+            binary.Write(header.debugRomOffset);
+            binary.Write(header.debugSize);
+            binary.Write(header.debugRamAddress);
+            binary.Write(header.reserved3);
+            binary.Write(header.reserved4);
 
-            if (Header.HeaderSize > 0x200)
-            {
+            if (header.headerSize > 0x200) {
                 // Write all the TWL stuff...
-                foreach (var Setting in Header.GlobalMBKSetting)
-                    Binary.Write(Setting);
-                foreach (var Setting in Header.ARM9MBKSetting)
-                    Binary.Write(Setting);
-                foreach (var Setting in Header.ARM7MBKSetting)
-                    Binary.Write(Setting);
-                foreach (var Setting in Header.mbk9_wramcnt_setting)
-                    Binary.Write(Setting);
+                foreach (var setting in header.globalMbkSetting)
+                    binary.Write(setting);
+                foreach (var setting in header.arm9MbkSetting)
+                    binary.Write(setting);
+                foreach (var setting in header.arm7MbkSetting)
+                    binary.Write(setting);
+                foreach (var setting in header.mbk9WramcntSetting)
+                    binary.Write(setting);
 
-                Binary.Write(Header.RegionFlags);
-                Binary.Write(Header.AccessControl);
-                Binary.Write(Header.SCFGExtMask);
-                Binary.Write(Header.AppFlags);
-                Binary.Write(Header.ARM9iOffset);
-                Binary.Write(Header.ARM9iEntryAddress);
-                Binary.Write(Header.ARM9iRAMAddress);
-                Binary.Write(Header.ARM9iSize);
-                Binary.Write(Header.ARM7iOffset);
-                Binary.Write(Header.ARM7iEntryAddress);
-                Binary.Write(Header.ARM7iRAMAddress);
-                Binary.Write(Header.ARM7iSize);
-                Binary.Write(Header.DigestNTROffset);
-                Binary.Write(Header.DigestNTRSize);
-                Binary.Write(Header.DigestTWLOffset);
-                Binary.Write(Header.DigestTWLSize);
-                Binary.Write(Header.SectorHashtableOffset);
-                Binary.Write(Header.SectorHashtableSize);
-                Binary.Write(Header.BlockHashtableOffset);
-                Binary.Write(Header.BlockHashtableSize);
-                Binary.Write(Header.DigestSectorSize);
-                Binary.Write(Header.DigestBlockSectorCount);
-                Binary.Write(Header.BannerSize);
-                Binary.Write(Header.offset_0x20C);
-                Binary.Write(Header.TotalTWLROMSize);
-                Binary.Write(Header.offset_0x214);
-                Binary.Write(Header.offset_0x218);
-                Binary.Write(Header.offset_0x21C);
-                Binary.Write(Header.ModcryptOffset);
-                Binary.Write(Header.ModcryptSize);
-                Binary.Write(Header.Modcrypt2Offset);
-                Binary.Write(Header.Modcrypt2Size);
-                Binary.Write(Header.TitleID);
-                Binary.Write(Header.PublicSaveSize);
-                Binary.Write(Header.PrivateSaveSize);
-                Binary.Write(Header.Reserved5);
-                Binary.Write(Header.AgeRatings);
-                Binary.Write(Header.HMAC_ARM9);
-                Binary.Write(Header.HMAC_ARM7);
-                Binary.Write(Header.HMAC_DigestMaster);
-                Binary.Write(Header.HMAC_TitleIcon);
-                Binary.Write(Header.HMAC_ARM9i);
-                Binary.Write(Header.HMAC_ARM7i);
-                Binary.Write(Header.Reserved6);
-                Binary.Write(Header.HMAC_ARM9NoSecure);
-                Binary.Write(Header.Reserved7);
-                Binary.Write(Header.DebugArguments);
-                Binary.Write(Header.RSASignature);
+                binary.Write(header.regionFlags);
+                binary.Write(header.accessControl);
+                binary.Write(header.scfgExtMask);
+                binary.Write(header.appFlags);
+                binary.Write(header.arm9IOffset);
+                binary.Write(header.arm9IEntryAddress);
+                binary.Write(header.arm9IRamAddress);
+                binary.Write(header.arm9ISize);
+                binary.Write(header.arm7IOffset);
+                binary.Write(header.arm7IEntryAddress);
+                binary.Write(header.arm7IRamAddress);
+                binary.Write(header.arm7ISize);
+                binary.Write(header.digestNtrOffset);
+                binary.Write(header.digestNtrSize);
+                binary.Write(header.digestTwlOffset);
+                binary.Write(header.digestTwlSize);
+                binary.Write(header.sectorHashtableOffset);
+                binary.Write(header.sectorHashtableSize);
+                binary.Write(header.blockHashtableOffset);
+                binary.Write(header.blockHashtableSize);
+                binary.Write(header.digestSectorSize);
+                binary.Write(header.digestBlockSectorCount);
+                binary.Write(header.bannerSize);
+                binary.Write(header.offset0X20C);
+                binary.Write(header.totalTwlromSize);
+                binary.Write(header.offset0X214);
+                binary.Write(header.offset0X218);
+                binary.Write(header.offset0X21C);
+                binary.Write(header.modcryptOffset);
+                binary.Write(header.modcryptSize);
+                binary.Write(header.modcrypt2Offset);
+                binary.Write(header.modcrypt2Size);
+                binary.Write(header.titleId);
+                binary.Write(header.publicSaveSize);
+                binary.Write(header.privateSaveSize);
+                binary.Write(header.reserved5);
+                binary.Write(header.ageRatings);
+                binary.Write(header.hmacArm9);
+                binary.Write(header.hmacArm7);
+                binary.Write(header.hmacDigestMaster);
+                binary.Write(header.hmacTitleIcon);
+                binary.Write(header.hmacArm9I);
+                binary.Write(header.hmacArm7I);
+                binary.Write(header.reserved6);
+                binary.Write(header.hmacArm9NoSecure);
+                binary.Write(header.reserved7);
+                binary.Write(header.debugArguments);
+                binary.Write(header.rsaSignature);
             }
 
             // If by some miracle we get here, that means we did a good job. Well, unless it doesn't boot. Then who knows.
-            Binary.Close();
+            binary.Close();
         }
     }
 }

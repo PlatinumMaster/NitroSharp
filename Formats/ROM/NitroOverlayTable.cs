@@ -2,72 +2,63 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace NitroSharp.Formats.ROM
-{
-    public class NitroOverlayTable : NitroByteWrapper
-    {
-        public NitroOverlayTable(uint Offset, uint Size, BinaryReader Binary) : base(Offset, Size, Binary)
-        {
-            this.Offset = Offset;
-            this.Size = Size;
-            OverlayTableEntries = ParseOverlayTable(Data);
+namespace NitroSharp.Formats.ROM {
+    public class NitroOverlayTable : NitroByteWrapper {
+        public NitroOverlayTable(uint offset, uint size, BinaryReader binary) : base(offset, size, binary) {
+            this.offset = offset;
+            this.size = size;
+            overlayTableEntries = parseOverlayTable(data);
         }
 
-        public NitroOverlayTable()
-        {
-            OverlayTableEntries = new List<NitroOverlayTableEntry>();
+        public NitroOverlayTable() {
+            overlayTableEntries = new List<NitroOverlayTableEntry>();
         }
 
-        public List<NitroOverlayTableEntry> OverlayTableEntries { get; }
+        public List<NitroOverlayTableEntry> overlayTableEntries { get; }
 
-        public static List<NitroOverlayTableEntry> ParseOverlayTable(byte[] Bytes)
-        {
-            var Entries = new List<NitroOverlayTableEntry>();
-            var Str = new BinaryReader(new MemoryStream(Bytes));
-            for (var i = 0; i < Bytes.Length / 0x20; ++i)
-                Entries.Add(new NitroOverlayTableEntry
-                {
-                    ID = Str.ReadUInt32(),
-                    RAMAddress = Str.ReadUInt32(),
-                    RAMSize = Str.ReadUInt32(),
-                    BSSSize = Str.ReadUInt32(),
-                    StaticInitStart = Str.ReadUInt32(),
-                    StaticInitEnd = Str.ReadUInt32(),
-                    FileID = Str.ReadUInt32(),
-                    CompressedSizeAndFlag = Str.ReadUInt32()
+        public static List<NitroOverlayTableEntry> parseOverlayTable(byte[] bytes) {
+            var entries = new List<NitroOverlayTableEntry>();
+            var str = new BinaryReader(new MemoryStream(bytes));
+            for (var i = 0; i < bytes.Length / 0x20; ++i)
+                entries.Add(new NitroOverlayTableEntry {
+                    id = str.ReadUInt32(),
+                    ramAddress = str.ReadUInt32(),
+                    ramSize = str.ReadUInt32(),
+                    bssSize = str.ReadUInt32(),
+                    staticInitStart = str.ReadUInt32(),
+                    staticInitEnd = str.ReadUInt32(),
+                    fileId = str.ReadUInt32(),
+                    compressedSizeAndFlag = str.ReadUInt32()
                 });
 
-            return Entries;
+            return entries;
         }
 
-        public byte[] Serialize()
-        {
-            var Str = new MemoryStream();
-            Str.Capacity = OverlayTableEntries.Count * 0x20;
-            OverlayTableEntries.ForEach(x =>
-            {
-                Str.Write(BitConverter.GetBytes(x.ID));
-                Str.Write(BitConverter.GetBytes(x.RAMAddress));
-                Str.Write(BitConverter.GetBytes(x.RAMSize));
-                Str.Write(BitConverter.GetBytes(x.BSSSize));
-                Str.Write(BitConverter.GetBytes(x.StaticInitStart));
-                Str.Write(BitConverter.GetBytes(x.StaticInitEnd));
-                Str.Write(BitConverter.GetBytes(x.FileID));
-                Str.Write(BitConverter.GetBytes(x.CompressedSizeAndFlag));
+        public byte[] serialize() {
+            var str = new MemoryStream();
+            str.Capacity = overlayTableEntries.Count * 0x20;
+            overlayTableEntries.ForEach(x => {
+                str.Write(BitConverter.GetBytes(x.id));
+                str.Write(BitConverter.GetBytes(x.ramAddress));
+                str.Write(BitConverter.GetBytes(x.ramSize));
+                str.Write(BitConverter.GetBytes(x.bssSize));
+                str.Write(BitConverter.GetBytes(x.staticInitStart));
+                str.Write(BitConverter.GetBytes(x.staticInitEnd));
+                str.Write(BitConverter.GetBytes(x.fileId));
+                str.Write(BitConverter.GetBytes(x.compressedSizeAndFlag));
             });
-            return Str.GetBuffer();
+            return str.GetBuffer();
         }
     }
 
-    public class NitroOverlayTableEntry
-    {
-        public uint BSSSize;
-        public uint CompressedSizeAndFlag;
-        public uint FileID;
-        public uint ID;
-        public uint RAMAddress;
-        public uint RAMSize;
-        public uint StaticInitEnd;
-        public uint StaticInitStart;
+    public class NitroOverlayTableEntry {
+        public uint bssSize;
+        public uint compressedSizeAndFlag;
+        public uint fileId;
+        public uint id;
+        public uint ramAddress;
+        public uint ramSize;
+        public uint staticInitEnd;
+        public uint staticInitStart;
     }
 }

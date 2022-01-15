@@ -1,42 +1,36 @@
 ﻿using System.IO;
 
-namespace NitroSharp.Formats.ROM
-{
-    public class ARMBinary
-    {
-        private byte[] _Data;
+namespace NitroSharp.Formats.ROM {
+    public class ArmBinary {
+        private byte[] _data;
 
-        public ARMBinary(uint EntryAddress, uint Offset, uint Size, uint RAMAddress)
-        {
-            this.EntryAddress = EntryAddress;
-            this.Offset = Offset;
-            this.Size = Size;
-            this.RAMAddress = RAMAddress;
+        public ArmBinary(uint entryAddress, uint offset, uint size, uint ramAddress) {
+            this.entryAddress = entryAddress;
+            this.offset = offset;
+            this.size = size;
+            this.ramAddress = ramAddress;
         }
 
-        public uint EntryAddress { get; set; }
-        public uint Offset { get; set; }
-        public uint Size { get; set; }
-        public uint RAMAddress { get; set; }
+        public uint entryAddress { get; set; }
+        public uint offset { get; set; }
+        public uint size { get; set; }
+        public uint ramAddress { get; set; }
 
-        public byte[] Data
-        {
-            get => _Data;
-            set => UpdateBinary(value);
+        public byte[] data {
+            get => _data;
+            set => updateBinary(value);
         }
 
-        public void GetFileFromROMStream(BinaryReader Binary)
-        {
-            var OriginalPosition = Binary.BaseStream.Position;
-            Binary.BaseStream.Position = Offset;
-            Data = Binary.ReadBytes((int) Size);
-            Binary.BaseStream.Position = OriginalPosition;
+        public void getFileFromRomStream(BinaryReader binary) {
+            var originalPosition = binary.BaseStream.Position;
+            binary.BaseStream.Position = offset;
+            data = binary.ReadBytes((int) size);
+            binary.BaseStream.Position = originalPosition;
         }
 
-        private void UpdateBinary(byte[] NewData)
-        {
-            _Data = NewData;
-            Size = (uint) NewData.Length;
+        private void updateBinary(byte[] newData) {
+            _data = newData;
+            size = (uint) newData.Length;
         }
     }
 }

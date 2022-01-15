@@ -2,65 +2,56 @@
 using System.IO;
 using System.Linq;
 
-namespace NitroSharp.Formats.ROM
-{
-    public class NitroOverlay : NitroByteWrapper
-    {
-        public NitroOverlay(uint Offset, uint Size, BinaryReader Binary) : base(Offset, Size, Binary)
-        {
-            IsCompressed = !GetIsCompressed();
+namespace NitroSharp.Formats.ROM {
+    public class NitroOverlay : NitroByteWrapper {
+        public NitroOverlay(uint offset, uint size, BinaryReader binary) : base(offset, size, binary) {
+            isCompressed = !getIsCompressed();
         }
 
-        public NitroOverlay()
-        {
-            Offset = 0;
-            Size = 0;
-            IsCompressed = false;
+        public NitroOverlay() {
+            offset = 0;
+            size = 0;
+            isCompressed = false;
         }
 
-        public bool IsCompressed { get; private set; }
+        public bool isCompressed { get; private set; }
 
-        public uint CompressionFlag => (uint) (IsCompressed ? 0x3000000 : 0x2000000);
+        public uint compressionFlag => (uint) (isCompressed ? 0x3000000 : 0x2000000);
 
-        private uint DecompressedSize { get; set; }
+        private uint decompressedSize { get; set; }
 
-        public byte[] Data
-        {
-            get => _Data;
-            set
-            {
-                UpdateBinary(value);
-                IsCompressed = GetIsCompressed();
+        public byte[] data {
+            get => _data;
+            set {
+                updateBinary(value);
+                isCompressed = getIsCompressed();
             }
         }
 
-        public bool GetIsCompressed()
-        {
-            if (Size < 8)
+        public bool getIsCompressed() {
+            if (size < 8)
                 return false;
-            var BaseSize = BitConverter.ToUInt32(Data.Skip((int) (Size - 0x4)).Take(0x4).ToArray());
+            var baseSize = BitConverter.ToUInt32(data.Skip((int) (size - 0x4)).Take(0x4).ToArray());
 
-            if (BaseSize is 0)
-                return false;
-
-            if (Size < Data[Size - 0x5])
+            if (baseSize is 0)
                 return false;
 
-            var ExpectedCompSize = (uint) ((Data[Size - 0x6] << 16) | (Data[Size - 0x7] << 8) | Data[Size - 0x8]);
-            if (ExpectedCompSize != Size)
+            if (size < data[size - 0x5])
                 return false;
-            DecompressedSize = Size + BaseSize;
+
+            var expectedCompSize = (uint) ((data[size - 0x6] << 16) | (data[size - 0x7] << 8) | data[size - 0x8]);
+            if (expectedCompSize != size)
+                return false;
+            decompressedSize = size + baseSize;
             return true;
         }
 
-        public uint GetCompressedSize()
-        {
-            return IsCompressed ? Size : 0;
+        public uint getCompressedSize() {
+            return isCompressed ? size : 0;
         }
 
-        public uint GetUncompressedSize()
-        {
-            return IsCompressed ? DecompressedSize : Size;
+        public uint getUncompressedSize() {
+            return isCompressed ? decompressedSize : size;
         }
     }
 }

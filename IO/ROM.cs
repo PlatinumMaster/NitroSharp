@@ -88,6 +88,7 @@ namespace NitroSharp.IO {
                 modcryptArea.getFileFromRomStream(binary);
                 modcryptArea2.getFileFromRomStream(binary);
             }
+            binary.Close();
         }
 
         public NitroDirectory root { get; set; }

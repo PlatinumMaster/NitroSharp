@@ -24,8 +24,7 @@ namespace NitroSharp.IO {
 
         public Rom(string path) {
             var binary = new BinaryReader(File.Open(path, FileMode.Open), Encoding.ASCII);
-            Dictionary<uint, uint> startOffsets = new Dictionary<uint, uint>(),
-                endOffsets = new Dictionary<uint, uint>();
+            Dictionary<uint, uint> startOffsets = new Dictionary<uint, uint>(), endOffsets = new Dictionary<uint, uint>();
             arm9Overlays = new List<NitroOverlay>();
             arm7Overlays = new List<NitroOverlay>();
             root = new NitroDirectory("/", 0xF000, null);
@@ -143,7 +142,7 @@ namespace NitroSharp.IO {
 
             // File Allocation Table
             var fileImageOffset = (ulong) (0x4000 +
-                                           +arm9Binary.size + arm9OverlayTable.size +
+                                           + arm9Binary.size + arm9OverlayTable.size +
                                            arm9Overlays.Aggregate(0U, (acc, e) => acc + e.size)
                                            + arm7Binary.size + arm7OverlayTable.size +
                                            arm7Overlays.Aggregate(0U, (acc, e) => acc + e.size)
@@ -180,6 +179,7 @@ namespace NitroSharp.IO {
 
             // Calculate the CRC.
             NitroHeader.calculateCrc(header);
+            
             // Header time!
             binary.BaseStream.Position = 0x0;
 

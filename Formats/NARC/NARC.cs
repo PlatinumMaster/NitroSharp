@@ -23,7 +23,7 @@ namespace NitroSharp.Formats {
             // NARC Header
             @out.Write(0x4352414E);
             @out.Write((ushort) 0xFFFE);
-            @out.Write((ushort) 0x10);
+            @out.Write((ushort) 0x1);
             @out.Write(0x0);
             @out.Write((ushort) 0x10);
             @out.Write((ushort) 0x3);

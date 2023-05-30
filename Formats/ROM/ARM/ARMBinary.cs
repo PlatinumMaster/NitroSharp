@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace NitroSharp.Formats.ROM {
+namespace NitroSharp.Formats.ROM.ARM {
     public class ArmBinary {
         private byte[] _data;
 

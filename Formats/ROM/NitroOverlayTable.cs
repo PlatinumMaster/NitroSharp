@@ -5,9 +5,9 @@ using System.IO;
 namespace NitroSharp.Formats.ROM {
     public class NitroOverlayTable : NitroByteWrapper {
         public NitroOverlayTable(uint offset, uint size, BinaryReader binary) : base(offset, size, binary) {
-            this.offset = offset;
-            this.size = size;
-            overlayTableEntries = parseOverlayTable(data);
+            this.Offset = offset;
+            this.Size = size;
+            overlayTableEntries = parseOverlayTable(Data);
         }
 
         public NitroOverlayTable() {

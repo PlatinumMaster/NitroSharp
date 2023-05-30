@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace NitroSharp.Formats.ROM {
+namespace NitroSharp.Formats.ROM.NTR {
     public class NitroFile {
         private byte[] _fileData;
 

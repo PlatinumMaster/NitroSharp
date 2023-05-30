@@ -90,7 +90,7 @@ namespace NitroSharp.Formats.NARC {
         }
 
         public FATBEntry(byte[] buffer) {
-            this.Buffer = buffer;
+            Buffer = buffer;
         }
 
         public byte[] Buffer { get; set; }

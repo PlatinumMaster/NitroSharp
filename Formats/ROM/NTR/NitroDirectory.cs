@@ -10,9 +10,9 @@ namespace NitroSharp.Formats.ROM.NTR {
         private static uint _baseOffset;
 
         public NitroDirectory(string name, uint id, NitroDirectory parent) {
-            this.Name = name;
-            this.ID = id;
-            this.Parent = parent;
+            Name = name;
+            ID = id;
+            Parent = parent;
             Subdirectories = new List<NitroDirectory>();
             Files = new List<NitroFile>();
         }

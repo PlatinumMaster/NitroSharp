@@ -5,8 +5,8 @@ namespace NitroSharp.Formats.ROM {
         protected byte[] _Data;
 
         public NitroByteWrapper(uint offset, uint size, BinaryReader binary) {
-            this.Offset = offset;
-            this.Size = size;
+            Offset = offset;
+            Size = size;
             GetFileFromRomStream(binary);
         }
 

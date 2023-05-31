@@ -50,13 +50,12 @@ namespace NitroSharp.Formats.ROM.NTR {
                     };
                     parent.Subdirectories.Add(directory);
                     ParseDirectory(directory, binary, origin, startOffsets, endOffsets);
-                }
-                else {
+                } else {
                     parent.Files.Add(new NitroFile(name, fileId, startOffsets[fileId],
                         endOffsets[fileId] - startOffsets[fileId], parent) {
                         path = string.Join("/", parent.Path, name)
                     });
-                    parent.Files.Last().GetFileFromRomStream(binary);
+                    // parent.Files.Last().GetFileFromRomStream(binary);
                 }
             }
 

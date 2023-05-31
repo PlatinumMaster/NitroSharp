@@ -24,7 +24,7 @@ namespace NitroSharp.Formats.ROM.NTR {
             set => UpdateFile(value);
         }
 
-        public void GetFileFromRomStream(BinaryReader binary) {
+        public void GetFileData(BinaryReader binary) {
             var originalPosition = binary.BaseStream.Position;
             binary.BaseStream.Position = offset;
             FileData = binary.ReadBytes((int) size);

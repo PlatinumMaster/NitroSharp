@@ -41,49 +41,49 @@ namespace NitroSharp.IO {
             Binary.BaseStream.Position = Header.FileNameTableOffset;
             NitroDirectory.ParseDirectory(Root, Binary, Binary.BaseStream.Position, startOffsets, endOffsets);
 
-            for (uint i = 0; i < Header.Arm9OverlayTableSize / 0x20; ++i) {
+            for (uint i = 0; i < Header.ARM9OverlayTableSize / 0x20; ++i) {
                 ARM9Overlays.Add(new NitroOverlay(startOffsets[i], endOffsets[i] - startOffsets[i], Binary));
                 ARM9Overlays[^1].GetFileFromRomStream(Binary);
             }
 
-            for (uint i = 0; i < Header.Arm7OverlayTableSize / 0x20; ++i) {
-                ARM7Overlays.Add(new NitroOverlay(startOffsets[i + Header.Arm7OverlayTableSize],
-                    endOffsets[i + Header.Arm7OverlayTableSize] - startOffsets[i + Header.Arm7OverlayTableSize],
+            for (uint i = 0; i < Header.ARM7OverlayTableSize / 0x20; ++i) {
+                ARM7Overlays.Add(new NitroOverlay(startOffsets[i + Header.ARM7OverlayTableSize],
+                    endOffsets[i + Header.ARM7OverlayTableSize] - startOffsets[i + Header.ARM7OverlayTableSize],
                     Binary));
                 ARM7Overlays[^1].GetFileFromRomStream(Binary);
             }
 
             ARM9OverlayTable =
-                new NitroOverlayTable(Header.Arm9OverlayTableOffset, Header.Arm9OverlayTableSize, Binary);
+                new NitroOverlayTable(Header.ARM9OverlayTableOffset, Header.ARM9OverlayTableSize, Binary);
             ARM7OverlayTable =
-                new NitroOverlayTable(Header.Arm7OverlayTableOffset, Header.Arm7OverlayTableSize, Binary);
-            ARM9 = new ARM9(Header.Arm9EntryAddress, Header.Arm9Offset, Header.Arm9Size, Header.Arm9RamAddress);
-            ARM7 = new ARM7(Header.Arm7EntryAddress, Header.Arm7Offset, Header.Arm7Size, Header.Arm7RamAddress);
+                new NitroOverlayTable(Header.ARM7OverlayTableOffset, Header.ARM7OverlayTableSize, Binary);
+            ARM9 = new ARM9(Header.ARM9EntryAddress, Header.ARM9Offset, Header.ARM9Size, Header.ARM9RAMAddress);
+            ARM7 = new ARM7(Header.ARM7EntryAddress, Header.ARM7Offset, Header.ARM7Size, Header.ARM7RAMAddress);
             Banner = new NitroBanner(Header.BannerOffset, Header.BannerSize);
 
             ARM9OverlayTable.GetFileFromRomStream(Binary);
             ARM7OverlayTable.GetFileFromRomStream(Binary);
-            Banner.getFileFromRomStream(Binary);
-            ARM9.getFileFromRomStream(Binary);
-            ARM7.getFileFromRomStream(Binary);
+            Banner.GetFileFromRomStream(Binary);
+            ARM9.GetFileFromRomStream(Binary);
+            ARM7.GetFileFromRomStream(Binary);
 
             if (Header.HeaderSize > 0x200 && (Header.UnitCode & 2) > 0) {
-                ARM9i = new ARM9i(Header.Arm9IEntryAddress, Header.Arm9IOffset, Header.Arm9ISize,
-                    Header.Arm9IRamAddress);
-                ARM7i = new ARM7i(Header.Arm7IEntryAddress, Header.Arm7IOffset, Header.Arm7ISize,
-                    Header.Arm7IRamAddress);
+                ARM9i = new ARM9i(Header.ARM9iEntryAddress, Header.ARM9iOffset, Header.ARM9iSize,
+                    Header.ARM9iRamAddress);
+                ARM7i = new ARM7i(Header.ARM7iEntryAddress, Header.ARM7iOffset, Header.ARM7iSize,
+                    Header.ARM7iRamAddress);
                 SectorHashtable =
                     new NitroByteWrapper(Header.SectorHashtableOffset, Header.SectorHashtableSize, Binary);
                 BlockHashtable = new NitroByteWrapper(Header.BlockHashtableOffset, Header.BlockHashtableSize, Binary);
-                NTRDigest = new NitroByteWrapper(Header.DigestNtrOffset, Header.DigestNtrSize, Binary);
-                TWLDigest = new NitroByteWrapper(Header.DigestTwlOffset, Header.DigestTwlSize, Binary);
+                NTRDigest = new NitroByteWrapper(Header.DigestNTROffset, Header.DigestNTRSize, Binary);
+                TWLDigest = new NitroByteWrapper(Header.DigestTWLOffset, Header.DigestTWLSize, Binary);
                 ModcryptArea = new NitroByteWrapper(Header.ModcryptOffset, Header.ModcryptSize, Binary);
                 ModcryptArea2 = new NitroByteWrapper(Header.Modcrypt2Offset, Header.Modcrypt2Size, Binary);
 
                 SectorHashtable.GetFileFromRomStream(Binary);
                 BlockHashtable.GetFileFromRomStream(Binary);
-                ARM9i.getFileFromRomStream(Binary);
-                ARM7i.getFileFromRomStream(Binary);
+                ARM9i.GetFileFromRomStream(Binary);
+                ARM7i.GetFileFromRomStream(Binary);
                 NTRDigest.GetFileFromRomStream(Binary);
                 TWLDigest.GetFileFromRomStream(Binary);
                 ModcryptArea.GetFileFromRomStream(Binary);
@@ -105,12 +105,12 @@ namespace NitroSharp.IO {
             binary.Write(new byte[Header.HeaderSize]);
 
             // Write the ARM9...
-            Header.Arm9Offset = (uint) binary.BaseStream.Position;
-            Header.Arm9Size = ARM9.size;
+            Header.ARM9Offset = (uint) binary.BaseStream.Position;
+            Header.ARM9Size = ARM9.size;
             binary.Write(ARM9.data);
 
-            Header.Arm9OverlayTableOffset = (uint) binary.BaseStream.Position;
-            Header.Arm9OverlayTableSize = ARM9OverlayTable.Size;
+            Header.ARM9OverlayTableOffset = (uint) binary.BaseStream.Position;
+            Header.ARM9OverlayTableSize = ARM9OverlayTable.Size;
             binary.Write(ARM9OverlayTable.Data);
 
             foreach (var overlay in ARM9Overlays) {
@@ -120,12 +120,12 @@ namespace NitroSharp.IO {
             }
 
             // Now the ARM7...
-            Header.Arm7Offset = (uint) binary.BaseStream.Position;
-            Header.Arm7Size = ARM7.size;
+            Header.ARM7Offset = (uint) binary.BaseStream.Position;
+            Header.ARM7Size = ARM7.size;
             binary.Write(ARM7.data);
 
-            Header.Arm7OverlayTableOffset = (uint) binary.BaseStream.Position;
-            Header.Arm7OverlayTableSize = ARM7OverlayTable.Size;
+            Header.ARM7OverlayTableOffset = (uint) binary.BaseStream.Position;
+            Header.ARM7OverlayTableSize = ARM7OverlayTable.Size;
             binary.Write(ARM7OverlayTable.Data);
 
             foreach (var overlay in ARM7Overlays) {
@@ -166,18 +166,18 @@ namespace NitroSharp.IO {
                 // DSi Binary time...
 
                 // ARM9i...
-                Header.Arm9IOffset = (uint) binary.BaseStream.Position;
-                Header.Arm9ISize = ARM9i.size;
+                Header.ARM9iOffset = (uint) binary.BaseStream.Position;
+                Header.ARM9iSize = ARM9i.size;
                 binary.Write(ARM9i.data);
 
                 // ARM7i...
-                Header.Arm7IOffset = (uint) binary.BaseStream.Position;
-                Header.Arm7ISize = ARM7i.size;
+                Header.ARM7iOffset = (uint) binary.BaseStream.Position;
+                Header.ARM7iSize = ARM7i.size;
                 binary.Write(ARM7i.data);
             }
 
             // Calculate the CRC.
-            NitroHeader.CalculateCrc(Header);
+            NitroHeader.CalculateCRC(Header);
             
             // Header time!
             binary.BaseStream.Position = 0x0;
@@ -189,40 +189,40 @@ namespace NitroSharp.IO {
             binary.Write(Header.EncryptionSeed);
             binary.Write(Header.DeviceCapacity);
             binary.Write(new byte[7]);
-            binary.Write(Header.TwlInternalFlags);
+            binary.Write(Header.TWLInternalFlags);
             binary.Write(Header.PermitsFlags);
             binary.Write(Header.RomVersion);
             binary.Write(Header.InternalFlags);
-            binary.Write(Header.Arm9Offset);
-            binary.Write(Header.Arm9EntryAddress);
-            binary.Write(Header.Arm9RamAddress);
-            binary.Write(Header.Arm9Size);
-            binary.Write(Header.Arm7Offset);
-            binary.Write(Header.Arm7EntryAddress);
-            binary.Write(Header.Arm7RamAddress);
-            binary.Write(Header.Arm7Size);
+            binary.Write(Header.ARM9Offset);
+            binary.Write(Header.ARM9EntryAddress);
+            binary.Write(Header.ARM9RAMAddress);
+            binary.Write(Header.ARM9Size);
+            binary.Write(Header.ARM7Offset);
+            binary.Write(Header.ARM7EntryAddress);
+            binary.Write(Header.ARM7RAMAddress);
+            binary.Write(Header.ARM7Size);
             binary.Write(Header.FileNameTableOffset);
             binary.Write(Header.FileNameTableSize);
             binary.Write(Header.FileAllocationTableOffset);
             binary.Write(Header.FileAllocationTableSize);
-            binary.Write(Header.Arm9OverlayTableOffset);
-            binary.Write(Header.Arm9OverlayTableSize);
-            binary.Write(Header.Arm7OverlayTableOffset);
-            binary.Write(Header.Arm7OverlayTableSize);
+            binary.Write(Header.ARM9OverlayTableOffset);
+            binary.Write(Header.ARM9OverlayTableSize);
+            binary.Write(Header.ARM7OverlayTableOffset);
+            binary.Write(Header.ARM7OverlayTableSize);
             binary.Write(Header.FlagsRead);
             binary.Write(Header.FlagsInit);
             binary.Write(Header.BannerOffset);
             binary.Write(Header.SecureCrc16);
             binary.Write(Header.RomTimeout);
-            binary.Write(Header.Arm9Autoload);
-            binary.Write(Header.Arm7Autoload);
+            binary.Write(Header.ARM9Autoload);
+            binary.Write(Header.ARM7Autoload);
             binary.Write(Header.SecureAreaDisable);
             binary.Write(Header.RomSize);
             binary.Write(Header.HeaderSize);
             binary.Write(Header.Reserved2);
             binary.Write(Header.Logo);
-            binary.Write(Header.LogoCrc16);
-            binary.Write(Header.HeaderCrc16);
+            binary.Write(Header.LogoCRC);
+            binary.Write(Header.HeaderCRC);
             binary.Write(Header.DebugRomOffset);
             binary.Write(Header.DebugSize);
             binary.Write(Header.DebugRamAddress);
@@ -233,29 +233,29 @@ namespace NitroSharp.IO {
                 // Write all the TWL stuff...
                 foreach (var setting in Header.GlobalMbkSetting)
                     binary.Write(setting);
-                foreach (var setting in Header.Arm9MbkSetting)
+                foreach (var setting in Header.ARM9MbkSetting)
                     binary.Write(setting);
-                foreach (var setting in Header.Arm7MbkSetting)
+                foreach (var setting in Header.ARM7MbkSetting)
                     binary.Write(setting);
                 foreach (var setting in Header.Mbk9WramcntSetting)
                     binary.Write(setting);
 
                 binary.Write(Header.RegionFlags);
                 binary.Write(Header.AccessControl);
-                binary.Write(Header.ScfgExtMask);
+                binary.Write(Header.SCFGExtMask);
                 binary.Write(Header.AppFlags);
-                binary.Write(Header.Arm9IOffset);
-                binary.Write(Header.Arm9IEntryAddress);
-                binary.Write(Header.Arm9IRamAddress);
-                binary.Write(Header.Arm9ISize);
-                binary.Write(Header.Arm7IOffset);
-                binary.Write(Header.Arm7IEntryAddress);
-                binary.Write(Header.Arm7IRamAddress);
-                binary.Write(Header.Arm7ISize);
-                binary.Write(Header.DigestNtrOffset);
-                binary.Write(Header.DigestNtrSize);
-                binary.Write(Header.DigestTwlOffset);
-                binary.Write(Header.DigestTwlSize);
+                binary.Write(Header.ARM9iOffset);
+                binary.Write(Header.ARM9iEntryAddress);
+                binary.Write(Header.ARM9iRamAddress);
+                binary.Write(Header.ARM9iSize);
+                binary.Write(Header.ARM7iOffset);
+                binary.Write(Header.ARM7iEntryAddress);
+                binary.Write(Header.ARM7iRamAddress);
+                binary.Write(Header.ARM7iSize);
+                binary.Write(Header.DigestNTROffset);
+                binary.Write(Header.DigestNTRSize);
+                binary.Write(Header.DigestTWLOffset);
+                binary.Write(Header.DigestTWLSize);
                 binary.Write(Header.SectorHashtableOffset);
                 binary.Write(Header.SectorHashtableSize);
                 binary.Write(Header.BlockHashtableOffset);
@@ -263,28 +263,28 @@ namespace NitroSharp.IO {
                 binary.Write(Header.DigestSectorSize);
                 binary.Write(Header.DigestBlockSectorCount);
                 binary.Write(Header.BannerSize);
-                binary.Write(Header.Offset0X20C);
-                binary.Write(Header.TotalTwlromSize);
-                binary.Write(Header.Offset0X214);
-                binary.Write(Header.Offset0X218);
-                binary.Write(Header.Offset0X21C);
+                binary.Write(Header.Offset_20C);
+                binary.Write(Header.TotalTWLROMSize);
+                binary.Write(Header.Offset_214);
+                binary.Write(Header.Offset_218);
+                binary.Write(Header.Offset_21C);
                 binary.Write(Header.ModcryptOffset);
                 binary.Write(Header.ModcryptSize);
                 binary.Write(Header.Modcrypt2Offset);
                 binary.Write(Header.Modcrypt2Size);
-                binary.Write(Header.TitleId);
+                binary.Write(Header.TitleID);
                 binary.Write(Header.PublicSaveSize);
                 binary.Write(Header.PrivateSaveSize);
                 binary.Write(Header.Reserved5);
                 binary.Write(Header.AgeRatings);
-                binary.Write(Header.HmacArm9);
-                binary.Write(Header.HmacArm7);
-                binary.Write(Header.HmacDigestMaster);
-                binary.Write(Header.HmacTitleIcon);
-                binary.Write(Header.HmacArm9I);
-                binary.Write(Header.HmacArm7I);
+                binary.Write(Header.HMACARM9);
+                binary.Write(Header.HMACARM7);
+                binary.Write(Header.HMACDigestMaster);
+                binary.Write(Header.HMACTitleIcon);
+                binary.Write(Header.HMACARM9i);
+                binary.Write(Header.HMACARM7i);
                 binary.Write(Header.Reserved6);
-                binary.Write(Header.HmacArm9NoSecure);
+                binary.Write(Header.HMACARM9NoSecure);
                 binary.Write(Header.Reserved7);
                 binary.Write(Header.DebugArguments);
                 binary.Write(Header.RsaSignature);

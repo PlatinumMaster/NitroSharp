@@ -22,7 +22,7 @@ namespace NitroSharp.Formats.ROM {
         }
 
         protected void UpdateBinary(byte[] newData) {
-            Data = newData;
+            _Data = newData;
             Size = (uint) newData.Length;
         }
 

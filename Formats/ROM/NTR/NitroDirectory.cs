@@ -56,7 +56,7 @@ namespace NitroSharp.Formats.ROM.NTR {
                         endOffsets[fileId] - startOffsets[fileId], parent) {
                         path = string.Join("/", parent.Path, name)
                     });
-                    parent.Files.Last().getFileFromRomStream(binary);
+                    parent.Files.Last().GetFileFromRomStream(binary);
                 }
             }
 
@@ -83,7 +83,7 @@ namespace NitroSharp.Formats.ROM.NTR {
         public static void WriteFileImageTable(BinaryWriter binary, NitroDirectory root) {
             root.Files.ForEach(x => {
                 binary.BaseStream.Position = x.offset;
-                binary.Write(x.fileData);
+                binary.Write(x.FileData);
             });
 
             root.Subdirectories.ForEach(x => WriteFileImageTable(binary, x));

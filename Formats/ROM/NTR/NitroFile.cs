@@ -2,7 +2,7 @@
 
 namespace NitroSharp.Formats.ROM.NTR {
     public class NitroFile {
-        private byte[] _fileData;
+        private byte[] _FileData;
 
         public NitroFile(string name, uint id, uint offset, uint size, NitroDirectory parent) {
             this.name = name;
@@ -19,20 +19,20 @@ namespace NitroSharp.Formats.ROM.NTR {
         public string path { get; set; }
         public NitroDirectory parent { get; set; }
 
-        public byte[] fileData {
-            get => _fileData;
-            set => updateFile(value);
+        public byte[] FileData {
+            get => _FileData;
+            set => UpdateFile(value);
         }
 
-        public void getFileFromRomStream(BinaryReader binary) {
+        public void GetFileFromRomStream(BinaryReader binary) {
             var originalPosition = binary.BaseStream.Position;
             binary.BaseStream.Position = offset;
-            fileData = binary.ReadBytes((int) size);
+            FileData = binary.ReadBytes((int) size);
             binary.BaseStream.Position = originalPosition;
         }
 
-        private void updateFile(byte[] newFileData) {
-            _fileData = newFileData;
+        private void UpdateFile(byte[] newFileData) {
+            _FileData = newFileData;
             size = (uint) newFileData.Length;
         }
     }
